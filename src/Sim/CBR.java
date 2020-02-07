@@ -68,7 +68,7 @@ public class CBR extends Node {
 					
 					_sentmsg++;
 					send(_peer, new Message(_id, new NetworkAddr(_toNetwork, _toHost),_seq),0);
-					System.out.println("Traffic Generator CBR Node "+_id.networkId()+ "." + _id.nodeId() +" sent message with seq: "+_seq + " at time "+SimEngine.getTime());
+					System.out.println("CBR Traffic Generator Node "+_id.networkId()+ "." + _id.nodeId() +" sent message with seq: "+_seq + " at time "+SimEngine.getTime());
 					_seq++;
 					_time += 1.0 / _pkgPerSecond;
 				}	
