@@ -14,7 +14,7 @@ public class CBR extends Node {
 	private int _toHost = 0;
 	
 	private int _pkgPerSecond;
-	private int _timeToSend;
+	private double _timeToSend;
 
 	
 	public CBR (int network, int node)
