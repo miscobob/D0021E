@@ -25,7 +25,7 @@ public class Gaussian extends Node {
     }
 
     // Modified to only take a time limit, diviation and mean.
-    public void StartSendingNormal(int network, int node, int stdDeviation, int mean, int packages)
+    public void StartSending(int network, int node, int stdDeviation, int mean, int packages)
     {
         _toNetwork = network;
         _stdDeviation = stdDeviation;
