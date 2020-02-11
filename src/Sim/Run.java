@@ -5,11 +5,11 @@ import java.util.Arrays;
 public class Run {
 	public static void main (String [] args)
 	{
- 		LossyLink link1 = new LossyLink(25, 10, 0.25);
- 		LossyLink link2 = new LossyLink(0, 0, 0);
+ 		Link link1 = new Link();
+ 		Link link2 = new Link();
 		
 		Node host1 = new Sink(1,1);
-		CBR host2 = new CBR(2,1);
+		Poisson host2 = new Poisson(2,1);
 
 		host1.setPeer(link2);
 		host2.setPeer(link2);
@@ -20,7 +20,7 @@ public class Run {
 		routeNode.connectInterface(1, link2, host2);
 
 		//Network, Node, Messages per second, Seconds to send
-		host2.StartSending(1, 1, 2, 10);
+		host2.StartSending(1, 1, 3, 30000);
 		
 		Thread t=new Thread(SimEngine.instance());
 	
@@ -28,16 +28,6 @@ public class Run {
 		try
 		{
 			t.join();
-			/// Calculating statistics
-			System.out.println("Packets dropped "+ LossyLink.dropPackets);
-			System.out.println("Average A two B link1 " + ((float)link1.jitterA/(float)link1.numberOfPacketsSentByA));
-			Object[] array =  link1.jitterAList.toArray();
-			Arrays.sort(array);
-			if((array.length%2)==0)
-				System.out.println(array[(array.length-1)/2]+" "+array[(array.length)/2]);
-			else {
-				System.out.println(array[(array.length)/2]);
-			}
 		}
 		catch (Exception e)
 		{
