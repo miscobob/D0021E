@@ -32,6 +32,7 @@ public class Gaussian extends Node {
         _mean = mean;
         _toHost = node;
         _seq = 1;
+
         _packages = packages;
         send(this, new TimerEvent(), 0);
         System.out.println("Sending signal to start sending...");
@@ -59,13 +60,10 @@ public class Gaussian extends Node {
         	
         	double x = random.nextGaussian() * _stdDeviation + _mean;
         	
-        	
-        	
         	try {
             	
 				Logger.LogTime("Gaussian_" + _packages + "_timestamps_delta.txt", Double.toString(x));
 				Logger.LogTime("Gaussian_" + _packages + "_timestamps.txt", Double.toString(x));
-				
         	}
 			catch (Exception e){
 				System.out.println(e);
@@ -76,41 +74,6 @@ public class Gaussian extends Node {
             _seq++;	
         	
             send(this, new TimerEvent(), x);
-        	
-        	/*
-        	//The amount of packages to send this second
-            int packages = (int)Math.abs(random.nextGaussian() * _stdDeviation + _mean);
-            double _time = SimEngine.getTime();
-
-            for (int i = 0; i < packages; i++)
-            {
-                double currentDelay = Math.random();
-                double thisTime = SimEngine.getTime() + currentDelay;
-
-                try {
-                	
-					Logger.LogTime("Gaussian_" + _timeToSend + "_timestamps.txt", Double.toString(thisTime));
-				}
-				catch (Exception e){
-					System.out.println(e);
-				}
-                
-                _sentmsg++;
-                //System.out.println(_peer);
-                send(_peer, new Message(_id, new NetworkAddr(_toNetwork, _toHost), _seq), currentDelay);
-                System.out.println("Gaussian Traffic Generator Node "+_id.networkId()+ "." + _id.nodeId() +" sent message with seq: "+_seq + " at time "+ thisTime);
-                _seq++;
-            }
-            try {
-            	
-				Logger.LogTime("Gaussian_" + _timeToSend + "_packages.txt", Double.toString(packages));
-			}
-			catch (Exception e){
-				System.out.println(e);
-			}
-            
-            send(this, new TimerEvent(),1);
-        }*/
         }
 
         if (ev instanceof Message)
