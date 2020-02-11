@@ -15,7 +15,7 @@ public class Gaussian extends Node {
 	
 	private int _stdDeviation;
 	private int _mean;
-	private double _timeToSend;
+	private int _packages;
 	
 	Random random = new Random();
 
@@ -25,14 +25,14 @@ public class Gaussian extends Node {
     }
 
     // Modified to only take a time limit, diviation and mean.
-    public void StartSendingNormal(int network, int node, int stdDeviation, int mean, double timeToSend)
+    public void StartSendingNormal(int network, int node, int stdDeviation, int mean, int packages)
     {
         _toNetwork = network;
         _stdDeviation = stdDeviation;
         _mean = mean;
         _toHost = node;
         _seq = 1;
-        _timeToSend = timeToSend;
+        _packages = packages;
         send(this, new TimerEvent(), 0);
         System.out.println("Sending signal to start sending...");
 
@@ -54,41 +54,63 @@ public class Gaussian extends Node {
     	
         if (ev instanceof TimerEvent)
         {
-            if (SimEngine.getTime() < _timeToSend)
+        	if(_sentmsg > _packages)
+        		return;
+        	
+        	double x = random.nextGaussian() * _stdDeviation + _mean;
+        	
+        	
+        	
+        	try {
+            	
+				Logger.LogTime("Gaussian_" + _packages + "_timestamps_delta.txt", Double.toString(x));
+				Logger.LogTime("Gaussian_" + _packages + "_timestamps.txt", Double.toString(x));
+				
+        	}
+			catch (Exception e){
+				System.out.println(e);
+			}
+        	_sentmsg++;
+        	send(_peer, new Message(_id, new NetworkAddr(_toNetwork, _toHost), _seq), x);
+        	System.out.println("Gaussian Traffic Generator Node "+_id.networkId()+ "." + _id.nodeId() +" sent message with seq: "+_seq + " at time "+ SimEngine.getTime());
+            _seq++;	
+        	
+            send(this, new TimerEvent(), x);
+        	
+        	/*
+        	//The amount of packages to send this second
+            int packages = (int)Math.abs(random.nextGaussian() * _stdDeviation + _mean);
+            double _time = SimEngine.getTime();
+
+            for (int i = 0; i < packages; i++)
             {
-            	//The amount of packages to send this second
-                int packages = (int)Math.abs(random.nextGaussian() * _stdDeviation + _mean);
-                double _time = SimEngine.getTime();
+                double currentDelay = Math.random();
+                double thisTime = SimEngine.getTime() + currentDelay;
 
-                for (int i = 0; i < packages; i++)
-                {
-                    double currentDelay = Math.random();
-                    double thisTime = SimEngine.getTime() + currentDelay;
-
-                    try {
-                    	
-						Logger.LogTime("Gaussian_" + _timeToSend + "_timestamps.txt", Double.toString(thisTime));
-					}
-					catch (Exception e){
-						System.out.println(e);
-					}
-                    
-                    _sentmsg++;
-                    //System.out.println(_peer);
-                    send(_peer, new Message(_id, new NetworkAddr(_toNetwork, _toHost), _seq), currentDelay);
-                    System.out.println("Gaussian Traffic Generator Node "+_id.networkId()+ "." + _id.nodeId() +" sent message with seq: "+_seq + " at time "+ thisTime);
-                    _seq++;
-                }
                 try {
                 	
-					Logger.LogTime("Gaussian_" + _timeToSend + "_packages.txt", Double.toString(packages));
+					Logger.LogTime("Gaussian_" + _timeToSend + "_timestamps.txt", Double.toString(thisTime));
 				}
 				catch (Exception e){
 					System.out.println(e);
 				}
                 
-                send(this, new TimerEvent(),1);
+                _sentmsg++;
+                //System.out.println(_peer);
+                send(_peer, new Message(_id, new NetworkAddr(_toNetwork, _toHost), _seq), currentDelay);
+                System.out.println("Gaussian Traffic Generator Node "+_id.networkId()+ "." + _id.nodeId() +" sent message with seq: "+_seq + " at time "+ thisTime);
+                _seq++;
             }
+            try {
+            	
+				Logger.LogTime("Gaussian_" + _timeToSend + "_packages.txt", Double.toString(packages));
+			}
+			catch (Exception e){
+				System.out.println(e);
+			}
+            
+            send(this, new TimerEvent(),1);
+        }*/
         }
 
         if (ev instanceof Message)
