@@ -53,16 +53,27 @@ public class Node extends SimEnt {
 		_seq = startSeq;
 		send(this, new TimerEvent(),0);	
 	}
+	private int swapInterfaceAfter = 0;
+	private int swapTo;
+	/**
+	 * After non zero number of messages it will attempt swap to given interface
+	 * @param numberOfMessages
+	 * @param swapToInterface
+	 */
+	public void changeInterfaceAfter(int numberOfMessages, int swapToInterface) {
+		swapInterfaceAfter= numberOfMessages;
+		swapTo = swapToInterface;
+	}
+	
 	
 //**********************************************************************************	
 	
 	// This method is called upon that an event destined for this node triggers.
-	
 	public void recv(SimEnt src, Event ev)
 	{
 		if (ev instanceof TimerEvent)
 		{			
-			if (_stopSendingAfter > _sentmsg)
+			if (_stopSendingAfter > _sentmsg && (_sentmsg != swapInterfaceAfter||swapInterfaceAfter == 0))
 			{
 				_sentmsg++;
 				send(_peer, new Message(_id, new NetworkAddr(_toNetwork, _toHost),_seq),0);
@@ -70,11 +81,22 @@ public class Node extends SimEnt {
 				System.out.println("Node "+_id.networkId()+ "." + _id.nodeId() +" sent message with seq: "+_seq + " at time "+SimEngine.getTime());
 				_seq++;
 			}
+			else if(_sentmsg == swapInterfaceAfter)
+			{
+				_sentmsg++;
+				System.out.println("Node "+_id.networkId()+ "." + _id.nodeId() + " sends a request to change interface to interface " + swapTo);
+				send(_peer, new Migrate(this, swapTo),0);
+				send(this, new TimerEvent(), _timeBetweenSending);
+				
+			}
 		}
 		if (ev instanceof Message)
 		{
 			System.out.println("Node "+_id.networkId()+ "." + _id.nodeId() +" receives message with seq: "+((Message) ev).seq() + " at time "+SimEngine.getTime());
-			
+		}
+		if(ev instanceof Migrate) 
+		{
+			System.out.println("Node "+_id.networkId()+ "." + _id.nodeId()+ " moved to new interface: " + ((Migrate)ev).success());
 		}
 	}
 }

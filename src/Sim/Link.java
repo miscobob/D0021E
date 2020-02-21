@@ -22,20 +22,32 @@ public class Link extends SimEnt{
 		else
 			_connectorB=connectTo;
 	}
+	
+	public void removeConnector(SimEnt connected) {
+		if (_connectorA == connected) 
+			_connectorA=null;
+		else if(_connectorB == connected)
+			_connectorB=null;
+	}
 
 	// Called when a message enters the link
 	
 	public void recv(SimEnt src, Event ev)
 	{
-		if (ev instanceof Message)
+		if (ev instanceof Message || ev instanceof Migrate)
 		{
-			System.out.println("Link recv msg, passes it through");
+			
 			if (src == _connectorA)
 			{
+				System.out.println("Link recv msg, passes it through");
 				send(_connectorB, ev, _now);
 			}
-			else
+			else if(_connectorA == _connectorB || _connectorA == null || _connectorB == null)
 			{
+				System.out.println("Link dropped packet");
+			}
+			else {
+				System.out.println("Link recv msg, passes it through");
 				send(_connectorA, ev, _now);
 			}
 		}
