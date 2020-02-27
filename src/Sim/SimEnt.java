@@ -5,11 +5,17 @@ package Sim;
 
 public abstract class SimEnt {
 	
-	
+	protected NetworkAddr _id;
 	protected SimEnt()
 	{	
 	}
 	
+	public void setNetworkAddr(int networkId, int nodeId) {
+		_id = new NetworkAddr(networkId, nodeId);
+	}
+	public NetworkAddr getAddr() {
+		return _id;
+	}
 	// Called when erasing an entity like node or link etc. The SimEngine is called in case
 	// that de-registration of the entity is needed 
 	

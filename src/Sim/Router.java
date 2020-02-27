@@ -11,10 +11,12 @@ public class Router extends SimEnt{
 	
 	// When created, number of interfaces are defined
 	
-	Router(int interfaces)
+	Router(int interfaces, int networkId)
 	{
+		
 		_routingTable = new RouteTableEntry[interfaces];
 		_interfaces=interfaces;
+		setNetworkAddr(networkId, 0);
 	}
 	
 	// This method connects links to the router and also informs the 
@@ -78,17 +80,29 @@ public class Router extends SimEnt{
 	// the network number in the destination field of a messages. The link
 	// represents that network number is returned
 	
-	private SimEnt getInterface(int networkAddress)
+	private SimEnt getInterface(NetworkAddr nAddr)
 	{
 		SimEnt routerInterface=null;
-		for(int i=0; i<_interfaces; i++)
-			if (_routingTable[i] != null)
-			{
-				if (((Node) _routingTable[i].node()).getAddr().networkId() == networkAddress)
+		if(nAddr.networkId() == _id.networkId()) {
+			for(int i=0; i<_interfaces; i++)
+				if (_routingTable[i] != null)
 				{
-					routerInterface = _routingTable[i].link();
+					if (((Node) _routingTable[i].node()).getAddr().nodeId() == nAddr.nodeId())
+					{
+						routerInterface = _routingTable[i].link();
+					}
 				}
-			}
+		}
+		else {
+			for(int i=0; i<_interfaces; i++)
+				if (_routingTable[i] != null)
+				{
+					if (((Node) _routingTable[i].node()).getAddr().networkId() == nAddr.networkId())
+					{
+						routerInterface = _routingTable[i].link();
+					}
+				}
+		}
 		return routerInterface;
 	}
 	
@@ -100,7 +114,7 @@ public class Router extends SimEnt{
 		if (event instanceof Message)
 		{
 			System.out.println("Router handles packet with seq: " + ((Message) event).seq()+" from node: "+((Message) event).source().networkId()+"." + ((Message) event).source().nodeId() );
-			SimEnt sendNext = getInterface(((Message) event).destination().networkId());
+			SimEnt sendNext = getInterface(((Message)  event).destination());
 			System.out.println("Router sends to node: " + ((Message) event).destination().networkId()+"." + ((Message) event).destination().nodeId());		
 			send (sendNext, event, _now);
 	
@@ -109,7 +123,7 @@ public class Router extends SimEnt{
 		{
 			System.out.println("Router attempts to change interface for node " +((Migrate) event).source().getAddr().networkId() + " to  interface " +((Migrate) event).newInterface());
 			((Migrate) event).isSuccess(moveInterface(((Migrate) event).source(),((Migrate) event).newInterface()));
-			send(getInterface(((Migrate) event).source().getAddr().networkId()),event,0);
+			send(getInterface(((Migrate) event).source().getAddr()),event,0);
 		}
 	}
 }

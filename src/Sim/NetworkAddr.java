@@ -6,8 +6,8 @@ package Sim;
 // the host part.
 
 public class NetworkAddr {
-	private int _networkId;
-	private int _nodeId;
+	private int _networkId; // prefix 
+	private int _nodeId; // suffix
 	
 	NetworkAddr(int network, int node)
 	{
@@ -23,5 +23,9 @@ public class NetworkAddr {
 	public int nodeId()
 	{
 		return _nodeId;
+	}
+	
+	public boolean sameNetwork(NetworkAddr addr) {
+		return addr._networkId == this._networkId;
 	}
 }

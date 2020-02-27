@@ -15,7 +15,7 @@ public class Run {
 		host2.setPeer(link2);
 		
 		// Note. A switch is created in same way using the Switch class
-		Router routeNode = new Router(4);
+		Router routeNode = new Router(4, 0);
 		routeNode.connectInterface(0, link1, host1);
 		routeNode.connectInterface(1, link2, host2);
 		

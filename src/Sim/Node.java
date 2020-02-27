@@ -4,7 +4,7 @@ package Sim;
 // and it count messages send and received.
 
 public class Node extends SimEnt {
-	private NetworkAddr _id;
+	//private NetworkAddr _id;
 	private SimEnt _peer;
 	private int _sentmsg=0;
 	private int _seq = 0;
@@ -13,7 +13,8 @@ public class Node extends SimEnt {
 	public Node (int network, int node)
 	{
 		super();
-		_id = new NetworkAddr(network, node);
+		setNetworkAddr(network, node);
+		//_id = new NetworkAddr(network, node);
 	}	
 	
 	
@@ -28,13 +29,13 @@ public class Node extends SimEnt {
 			 ((Link) _peer).setConnector(this);
 		}
 	}
-	
+	/*
 	
 	public NetworkAddr getAddr()
 	{
 		return _id;
 	}
-	
+	*/
 //**********************************************************************************	
 	// Just implemented to generate some traffic for demo.
 	// In one of the labs you will create some traffic generators
