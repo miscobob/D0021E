@@ -28,4 +28,8 @@ public class NetworkAddr {
 	public boolean sameNetwork(NetworkAddr addr) {
 		return addr._networkId == this._networkId;
 	}
+	
+	public boolean SameAddress(NetworkAddr addr) {
+		return addr.networkId() == this._networkId && addr._nodeId == this.nodeId();
+	}
 }

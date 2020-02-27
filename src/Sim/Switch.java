@@ -22,7 +22,7 @@ public class Switch extends SimEnt{
 	{
 		if (portNumber<_ports)
 		{
-			_switchTable[portNumber] = new SwitchTableEntry(link, node);
+			_switchTable[portNumber] = new SwitchTableEntry(node._id, link);
 		}
 		else
 			System.out.println("Trying to connect to port not in switch");
@@ -40,7 +40,7 @@ public class Switch extends SimEnt{
 		for(int i=0; i<_ports; i++)
 			if (_switchTable[i] != null)
 			{
-				if (((Node) _switchTable[i].node()).getAddr().nodeId() == nodeAddress)
+				if (_switchTable[i].networkAddress.nodeId() == nodeAddress)
 				{
 					port = _switchTable[i].link();
 				}

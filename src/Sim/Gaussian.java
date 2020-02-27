@@ -52,7 +52,6 @@ public class Gaussian extends Node {
     // Override: Modified to send packages as a normal distribution with a random gaussian number.
     public void recv(SimEnt src, Event ev)
     {
-    	
         if (ev instanceof TimerEvent)
         {
         	if(_sentmsg > _packages)

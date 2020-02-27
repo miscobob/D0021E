@@ -26,7 +26,7 @@ public class Router extends SimEnt{
 	{
 		if (interfaceNumber<_interfaces && _routingTable[interfaceNumber] == null)
 		{
-			_routingTable[interfaceNumber] = new RouteTableEntry(link, node);
+			_routingTable[interfaceNumber] = new RouteTableEntry(node._id, link);
 		}
 		else
 			System.out.println("Trying to connect to port not in router");
@@ -64,7 +64,7 @@ public class Router extends SimEnt{
 		for(int i = 0; i<_routingTable.length; i++) 
 		{
 			if(_routingTable[i] != null)
-			if(_routingTable[i].node() == node)
+			if(_routingTable[i].networkAddress.SameAddress(node._id))
 			{
 				link = _routingTable[i].link();
 				_routingTable[i] = null;
@@ -87,7 +87,7 @@ public class Router extends SimEnt{
 			for(int i=0; i<_interfaces; i++)
 				if (_routingTable[i] != null)
 				{
-					if (((Node) _routingTable[i].node()).getAddr().nodeId() == nAddr.nodeId())
+					if (_routingTable[i].node() == nAddr.nodeId())
 					{
 						routerInterface = _routingTable[i].link();
 					}
@@ -97,7 +97,7 @@ public class Router extends SimEnt{
 			for(int i=0; i<_interfaces; i++)
 				if (_routingTable[i] != null)
 				{
-					if (((Node) _routingTable[i].node()).getAddr().networkId() == nAddr.networkId())
+					if (_routingTable[i].network() == nAddr.networkId())
 					{
 						routerInterface = _routingTable[i].link();
 					}
@@ -113,7 +113,7 @@ public class Router extends SimEnt{
 	{
 		if (event instanceof Message)
 		{
-			System.out.println("Router handles packet with seq: " + ((Message) event).seq()+" from node: "+((Message) event).source().networkId()+"." + ((Message) event).source().nodeId() );
+			System.out.println("Router " + this.getAddr().networkId() + "." + this.getAddr().nodeId() +  " handles packet with seq: " + ((Message) event).seq()+" from node: "+((Message) event).source().networkId()+"." + ((Message) event).source().nodeId() );
 			SimEnt sendNext = getInterface(((Message)  event).destination());
 			System.out.println("Router sends to node: " + ((Message) event).destination().networkId()+"." + ((Message) event).destination().nodeId());		
 			send (sendNext, event, _now);

@@ -6,19 +6,24 @@ package Sim;
 
 public class RouteTableEntry extends TableEntry{
 
-	RouteTableEntry(SimEnt link, SimEnt node)
+	RouteTableEntry(NetworkAddr networkAddress, SimEnt link)
 	{
-		super(link, node);
+		super(networkAddress, link);
 	}
 	
-	public SimEnt link()
+	public int network()
 	{
-		return super.link();
+		return super.network();
 	}
 
-	public SimEnt node()
+	public int node()
 	{
 		return super.node();
+	}
+	
+	public SimEnt Link()
+	{
+		return super.link();
 	}
 	
 }
