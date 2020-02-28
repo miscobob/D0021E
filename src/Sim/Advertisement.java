@@ -1,16 +1,9 @@
 package Sim;
 
-public class Advertisement implements Event {
+public class Advertisement extends Message {
 
-	public NetworkAddr _source;
-	public Advertisement (NetworkAddr from)
-	{
-		_source = from;
-	}
-	
-	@Override
-	public void entering(SimEnt locale) {
-		// TODO Auto-generated method stub
-		
+	Advertisement(NetworkAddr from, NetworkAddr to, int seq) {
+		super(from, to, seq);
+		// TODO Auto-generated constructor stub
 	}
 }

@@ -1,7 +1,5 @@
 package Sim;
 
-import java.util.Arrays;
-
 public class Run {
 	public static void main (String [] args)
 	{
@@ -34,6 +32,8 @@ public class Run {
 		//host2.StartSending(1, 1, 20, 1, 0);
 		//host1.StartSending(1, 1, 20, 1, 20);
 		host2.sendSolicitationRequest();
+		
+		
 		
 		Thread t=new Thread(SimEngine.instance());
 	

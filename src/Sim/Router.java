@@ -21,12 +21,14 @@ public class Router extends SimEnt{
 	
 	public void advertise()
 	{
+		System.out.println(this.toString() + " Sending advertisement to all connected interfaces:");
 		for(RouteTableEntry addr : _routingTable)
 		{
 			if(addr == null)
 				continue;
-			
-			send (getInterface(addr.networkAddress), new Advertisement(this._id), _now);
+
+			System.out.println(this.toString() + " Sending advertisement to " + addr.networkAddress.toString());
+			send (getInterface(addr.networkAddress), new Advertisement(this._id, addr.networkAddress, 0), _now);
 		}
 	}
 	
@@ -150,30 +152,27 @@ public class Router extends SimEnt{
 	
 	public void recv(SimEnt source, Event event)
 	{
-		if (event instanceof Message)
-		{
-			System.out.println("Router " + this.getAddr().networkId() + "." + this.getAddr().nodeId() +  " handles packet with seq: " + ((Message) event).seq()+" from node: "+((Message) event).source().networkId()+"." + ((Message) event).source().nodeId() );
-			SimEnt sendNext = getInterface(((Message)  event).destination());
-			System.out.println("Router sends to node: " + ((Message) event).destination().networkId()+"." + ((Message) event).destination().nodeId());		
-			send (sendNext, event, _now);
-	
-		}
 		if(event instanceof Migrate) 
 		{
 			System.out.println("Router attempts to change interface for node " +((Migrate) event).source().getAddr().networkId() + " to  interface " +((Migrate) event).newInterface());
 			((Migrate) event).isSuccess(moveInterface(((Migrate) event).source(),((Migrate) event).newInterface()));
 			send(getInterface(((Migrate) event).source().getAddr()),event,0);
 		}
-		if(event instanceof Solicit)
+		else if(event instanceof Solicit)
 		{
-			System.out.println(this.toString() + " Received Solicitation request from ");
-			//advertise();
+			System.out.println(this.toString() + " Received Solicitation request from Node " + ((Solicit)event).source());
+			advertise();
 		}
-
-		if(event instanceof Advertisement)
+		else if(event instanceof Advertisement)
 		{
-			System.out.println(this.toString() + " Received Advertisement from ");
+			System.out.println(this.toString() + " Received Advertisement from Router " + ((Advertisement)event).source());
 		}
-		
+		else if (event instanceof Message)
+		{
+			System.out.println("Router " + this.getAddr().networkId() + "." + this.getAddr().nodeId() +  " handles packet with seq: " + ((Message) event).seq()+" from node: "+((Message) event).source().networkId()+"." + ((Message) event).source().nodeId() );
+			SimEnt sendNext = getInterface(((Message)  event).destination());
+			System.out.println("Router sends to node: " + ((Message) event).destination().networkId()+"." + ((Message) event).destination().nodeId());		
+			send (sendNext, event, _now);
+		}
 	}
 }

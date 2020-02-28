@@ -36,7 +36,7 @@ public class Link extends SimEnt{
 	{
 			if (src == _connectorA)
 			{
-				System.out.println("Link recv msg, passes it through");
+				//System.out.println("Link recv msg, passes it through");
 				send(_connectorB, ev, _now);
 			}
 			else if(_connectorA == _connectorB || _connectorA == null || _connectorB == null)
@@ -44,7 +44,7 @@ public class Link extends SimEnt{
 				System.out.println("Link dropped packet");
 			}
 			else {
-				System.out.println("Link recv msg, passes it through");
+				//System.out.println("Link recv msg, passes it through");
 				send(_connectorA, ev, _now);
 			}
 	}	

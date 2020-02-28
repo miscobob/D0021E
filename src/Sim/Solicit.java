@@ -1,16 +1,10 @@
 package Sim;
 
-public class Solicit implements Event {
+public class Solicit extends Message {
 
-	public NetworkAddr _source;
-	public Solicit (NetworkAddr from)
-	{
-		_source = from;
+	Solicit(NetworkAddr from, int seq) {
+		super(from, null, seq);
+		// TODO Auto-generated constructor stub
 	}
 	
-	@Override
-	public void entering(SimEnt locale) {
-		// TODO Auto-generated method stub
-		
-	}
 }

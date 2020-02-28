@@ -71,7 +71,7 @@ public class Node extends SimEnt {
 	{
 		System.out.println(this.toString() + " sends a solicitation request to IP " + new NetworkAddr(this._id.networkId(), 0));
 		
-		send(_peer, new Solicit(this._id), 0);
+		send(_peer, new Solicit(this._id, 0), 0);
 	}
 	
 //**********************************************************************************	
@@ -98,18 +98,17 @@ public class Node extends SimEnt {
 				
 			}
 		}
-		if (ev instanceof Message)
-		{
-			System.out.println("Node "+_id.networkId()+ "." + _id.nodeId() +" receives message with seq: "+((Message) ev).seq() + " at time "+SimEngine.getTime());
-		}
-		if(ev instanceof Migrate) 
+		else if(ev instanceof Migrate) 
 		{
 			System.out.println("Node "+_id.networkId()+ "." + _id.nodeId()+ " moved to new interface: " + ((Migrate)ev).success());
 		}
-		if(ev instanceof Advertisement)
+		else if(ev instanceof Advertisement)
 		{
-			System.out.println(this.toString() + " Received Advertisement");
+			System.out.println(this.toString() + " Received Advertisement from Router " + ((Advertisement)ev).source());
 		}
-		
+		else if (ev instanceof Message)
+		{
+			System.out.println("Node "+_id.networkId()+ "." + _id.nodeId() +" receives message with seq: "+((Message) ev).seq() + " at time "+SimEngine.getTime());
+		}
 	}
 }
