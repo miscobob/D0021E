@@ -67,6 +67,13 @@ public class Node extends SimEnt {
 	}
 	
 	
+	public void sendSolicitationRequest()
+	{
+		System.out.println(this.toString() + " sends a solicitation request to IP " + new NetworkAddr(this._id.networkId(), 0));
+		
+		send(_peer, new Solicit(this._id), 0);
+	}
+	
 //**********************************************************************************	
 	
 	// This method is called upon that an event destined for this node triggers.
@@ -99,5 +106,10 @@ public class Node extends SimEnt {
 		{
 			System.out.println("Node "+_id.networkId()+ "." + _id.nodeId()+ " moved to new interface: " + ((Migrate)ev).success());
 		}
+		if(ev instanceof Advertisement)
+		{
+			System.out.println(this.toString() + " Received Advertisement");
+		}
+		
 	}
 }

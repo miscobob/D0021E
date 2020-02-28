@@ -19,19 +19,58 @@ public class Router extends SimEnt{
 		setNetworkAddr(networkId, 0);
 	}
 	
+	public void advertise()
+	{
+		for(RouteTableEntry addr : _routingTable)
+		{
+			if(addr == null)
+				continue;
+			
+			send (getInterface(addr.networkAddress), new Advertisement(this._id), _now);
+		}
+	}
+	
+	
 	// This method connects links to the router and also informs the 
 	// router of the host connects to the other end of the link
-	
 	public void connectInterface(int interfaceNumber, SimEnt link, SimEnt node)
 	{
+		if(!uniqueAddress(node._id))
+		{
+			System.out.println("IP Address is not unique");
+			return;
+		}
+		
 		if (interfaceNumber<_interfaces && _routingTable[interfaceNumber] == null)
 		{
 			_routingTable[interfaceNumber] = new RouteTableEntry(node._id, link);
+			System.out.println(node.toString() + " Successfully connected to " + this.toString());
 		}
 		else
+		{
 			System.out.println("Trying to connect to port not in router");
+			return;
+		}
 		
 		((Link) link).setConnector(this);
+	}
+	
+	/**
+	 * Checks whether the IP Address already exists in this router
+	 * @param nA NetworkAddr to check
+	 * @return true if address is unique, false if address is not
+	 */
+	private boolean uniqueAddress(NetworkAddr nA) {
+		for(RouteTableEntry addr : _routingTable)
+		{
+			if(addr == null)
+				continue;
+			
+			if(addr.networkAddress.SameAddress(nA))
+				return false;
+		}
+		
+		return true;
 	}
 	
 	/**
@@ -125,5 +164,16 @@ public class Router extends SimEnt{
 			((Migrate) event).isSuccess(moveInterface(((Migrate) event).source(),((Migrate) event).newInterface()));
 			send(getInterface(((Migrate) event).source().getAddr()),event,0);
 		}
+		if(event instanceof Solicit)
+		{
+			System.out.println(this.toString() + " Received Solicitation request from ");
+			//advertise();
+		}
+
+		if(event instanceof Advertisement)
+		{
+			System.out.println(this.toString() + " Received Advertisement from ");
+		}
+		
 	}
 }

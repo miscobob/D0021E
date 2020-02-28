@@ -34,9 +34,6 @@ public class Link extends SimEnt{
 	
 	public void recv(SimEnt src, Event ev)
 	{
-		if (ev instanceof Message || ev instanceof Migrate)
-		{
-			
 			if (src == _connectorA)
 			{
 				System.out.println("Link recv msg, passes it through");
@@ -50,6 +47,5 @@ public class Link extends SimEnt{
 				System.out.println("Link recv msg, passes it through");
 				send(_connectorA, ev, _now);
 			}
-		}
 	}	
 }

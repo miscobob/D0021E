@@ -16,6 +16,13 @@ public abstract class SimEnt {
 	public NetworkAddr getAddr() {
 		return _id;
 	}
+	
+	@Override
+	public String toString()
+	{
+		return this.getClass().getSimpleName() + " " + this._id.toString();
+	}
+	
 	// Called when erasing an entity like node or link etc. The SimEngine is called in case
 	// that de-registration of the entity is needed 
 	

@@ -15,6 +15,7 @@ public class Run {
 		host1.setPeer(link1);
 		host2.setPeer(link2);
 		
+		
 		// Note. A switch is created in same way using the Switch class
 		Router routeNode = new Router(5, 0);
 		Router routeNode2 = new Router(5, 1);
@@ -31,7 +32,8 @@ public class Run {
 		
 		//Network, Node, Messages per second, Seconds to send
 		//host2.StartSending(1, 1, 20, 1, 0);
-		host1.StartSending(1, 1, 20, 1, 20);
+		//host1.StartSending(1, 1, 20, 1, 20);
+		host2.sendSolicitationRequest();
 		
 		Thread t=new Thread(SimEngine.instance());
 	

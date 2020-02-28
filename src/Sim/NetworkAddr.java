@@ -32,4 +32,10 @@ public class NetworkAddr {
 	public boolean SameAddress(NetworkAddr addr) {
 		return addr.networkId() == this._networkId && addr._nodeId == this.nodeId();
 	}
+	
+	@Override
+	public String toString()
+	{
+		return this._networkId + "." + this.nodeId();
+	}
 }
