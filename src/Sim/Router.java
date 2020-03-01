@@ -8,6 +8,7 @@ public class Router extends SimEnt{
 	private RouteTableEntry [] _routingTable;
 	private int _interfaces;
 	private int _now=0;
+	private HomeAgent _HA;
 	
 	// When created, number of interfaces are defined
 	
@@ -17,6 +18,7 @@ public class Router extends SimEnt{
 		_routingTable = new RouteTableEntry[interfaces];
 		_interfaces=interfaces;
 		setNetworkAddr(networkId, 0);
+		_HA = new HomeAgent(this);
 	}
 	
 	public void advertise()
@@ -28,10 +30,19 @@ public class Router extends SimEnt{
 				continue;
 
 			System.out.println(this.toString() + " Sending advertisement to " + addr.networkAddress.toString());
-			send (getInterface(addr.networkAddress), new Advertisement(this._id, addr.networkAddress, 0), _now);
+			send (addr.link, new Advertisement(this._id, addr.networkAddress, 0), _now);
 		}
 	}
 	
+	public int getEmptyInterface() {
+		
+		for(int i = 0; i<_routingTable.length; i++) {
+			if(_routingTable[i] == null) {
+				return i;
+			}
+		}
+		return -1;
+	}
 	
 	// This method connects links to the router and also informs the 
 	// router of the host connects to the other end of the link
@@ -63,6 +74,8 @@ public class Router extends SimEnt{
 	 * @return true if address is unique, false if address is not
 	 */
 	private boolean uniqueAddress(NetworkAddr nA) {
+		if(nA.nodeId() == 0 && nA.networkId() == getAddr().networkId())
+			return false;
 		for(RouteTableEntry addr : _routingTable)
 		{
 			if(addr == null)
@@ -77,40 +90,38 @@ public class Router extends SimEnt{
 	
 	/**
 	 * Return if could change interface
-	 * @param node
+	 * @param networkAddr
 	 * @param newInterface
 	 * @return
 	 */
-	private boolean moveInterface(SimEnt node, int newInterface) {
+	private Link moveInterface(NetworkAddr networkAddr, int newInterface) {
 		if(_routingTable[newInterface] != null) {
-			return false;
+			return null;
 		}
-		Link link = (Link)removeFromInterface(node);
+		Link link = (Link)removeFromInterface(networkAddr);
 		Link newLink = new Link();
-		newLink.setConnector(link._connectorA);
-		newLink.setConnector(link._connectorB);
-		link._connectorA = null;
-		link._connectorB = null;
-		((Node)node).setPeer(newLink);
-		connectInterface(newInterface, newLink , node);
-		return true;
+		newLink.setConnector(link.getOther(this));
+		newLink.setConnector(this);
+		connectInterface(newInterface, newLink , link.getOther(this));
+		link.removeConnector(link.getOther(this));
+		link.removeConnector(this);
+		
+		return newLink;
 	}
 	
 	/**
 	 * Disconnects from link
-	 * @param node which is removed
+	 * @param networkAddr which is removed
 	 */
-	private SimEnt removeFromInterface(SimEnt node) {
+	private SimEnt removeFromInterface(NetworkAddr networkAddr) {
 		SimEnt link = null;
 		for(int i = 0; i<_routingTable.length; i++) 
 		{
 			if(_routingTable[i] != null)
-			if(_routingTable[i].networkAddress.SameAddress(node._id))
+			if(_routingTable[i].networkAddress.SameAddress(networkAddr))
 			{
 				link = _routingTable[i].link();
 				_routingTable[i] = null;
-				
-				((Link) link).removeConnector(this);
 			}
 			
 		}
@@ -133,6 +144,8 @@ public class Router extends SimEnt{
 						routerInterface = _routingTable[i].link();
 					}
 				}
+			if(routerInterface == null)
+				routerInterface = _HA;
 		}
 		else {
 			for(int i=0; i<_interfaces; i++)
@@ -154,9 +167,18 @@ public class Router extends SimEnt{
 	{
 		if(event instanceof Migrate) 
 		{
-			System.out.println("Router attempts to change interface for node " +((Migrate) event).source().getAddr().networkId() + " to  interface " +((Migrate) event).newInterface());
-			((Migrate) event).isSuccess(moveInterface(((Migrate) event).source(),((Migrate) event).newInterface()));
-			send(getInterface(((Migrate) event).source().getAddr()),event,0);
+			System.out.println("Router attempts to change interface for node " +((Migrate) event).source().networkId() + " to  interface " +((Migrate) event).newInterface());
+			((Migrate) event).newLink(moveInterface(((Migrate) event).source(),((Migrate) event).newInterface()));
+			send(getInterface(((Migrate) event).source()),event,0);
+		}
+		else if(event instanceof Disconnect) {
+			Link link = (Link) removeFromInterface(((Disconnect) event).source());
+			link.removeConnector(this);
+		}
+		else if(event instanceof UniqueAddr) {
+			System.out.println(toString() +" handles a request to test if address is unique");
+			((UniqueAddr)event).setUnique(uniqueAddress(((UniqueAddr)event).getAddr()));
+			send(source, event, 0);
 		}
 		else if(event instanceof Solicit)
 		{
@@ -166,6 +188,20 @@ public class Router extends SimEnt{
 		else if(event instanceof Advertisement)
 		{
 			System.out.println(this.toString() + " Received Advertisement from Router " + ((Advertisement)event).source());
+		}
+		else if(event instanceof BindingRequest) {
+			BindingRequest br = (BindingRequest) event;
+			if(br.destination().SameAddress(getAddr())) {
+				System.out.println(this.toString()+ " received a binding request");
+				send(_HA, br, 0);
+			}
+			else{
+				System.out.println("Router " + this.getAddr().networkId() + "." + this.getAddr().nodeId() +  " handles packet with seq: " + ((Message) event).seq()+" from node: "+((Message) event).source().networkId()+"." + ((Message) event).source().nodeId() );
+				SimEnt sendNext = getInterface(br.destination());
+				System.out.println("Router sends to node: " + ((Message) event).destination().networkId()+"." + ((Message) event).destination().nodeId());	
+				send (sendNext, event, _now);
+			}
+			
 		}
 		else if (event instanceof Message)
 		{

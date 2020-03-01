@@ -8,6 +8,8 @@ public class Node extends SimEnt {
 	private SimEnt _peer;
 	private int _sentmsg=0;
 	private int _seq = 0;
+	private NetworkAddr oldAddress;
+	private boolean setup = true;
 
 	
 	public Node (int network, int node)
@@ -55,7 +57,9 @@ public class Node extends SimEnt {
 		send(this, new TimerEvent(),0);	
 	}
 	private int swapInterfaceAfter = 0;
+	private int swapRouterAfter = 0;
 	private int swapTo;
+	private Router _newRouter;
 	/**
 	 * After non zero number of messages it will attempt swap to given interface
 	 * @param numberOfMessages
@@ -66,10 +70,14 @@ public class Node extends SimEnt {
 		swapTo = swapToInterface;
 	}
 	
+	public void changeRouterAfter(int numberOfMessages, Router newRouter) {
+		_newRouter = newRouter;
+		swapRouterAfter = numberOfMessages;
+	}
 	
 	public void sendSolicitationRequest()
 	{
-		System.out.println(this.toString() + " sends a solicitation request to IP " + new NetworkAddr(this._id.networkId(), 0));
+		System.out.println(this.toString() + " sends a solicitation request");
 		
 		send(_peer, new Solicit(this._id, 0), 0);
 	}
@@ -79,9 +87,10 @@ public class Node extends SimEnt {
 	// This method is called upon that an event destined for this node triggers.
 	public void recv(SimEnt src, Event ev)
 	{
+		
 		if (ev instanceof TimerEvent)
 		{			
-			if (_stopSendingAfter > _sentmsg && (_sentmsg != swapInterfaceAfter||swapInterfaceAfter == 0))
+			if (setup && _stopSendingAfter > _sentmsg && ((_sentmsg != swapRouterAfter&&_sentmsg != swapInterfaceAfter)||_sentmsg == 0))
 			{
 				_sentmsg++;
 				send(_peer, new Message(_id, new NetworkAddr(_toNetwork, _toHost),_seq),0);
@@ -89,26 +98,81 @@ public class Node extends SimEnt {
 				System.out.println("Node "+_id.networkId()+ "." + _id.nodeId() +" sent message with seq: "+_seq + " at time "+SimEngine.getTime());
 				_seq++;
 			}
-			else if(_sentmsg == swapInterfaceAfter)
+			else if(setup && _sentmsg == swapInterfaceAfter)
 			{
 				_sentmsg++;
 				System.out.println("Node "+_id.networkId()+ "." + _id.nodeId() + " sends a request to change interface to interface " + swapTo);
-				send(_peer, new Migrate(this, swapTo),0);
+				send(_peer, new Migrate(getAddr(), swapTo),0);
 				send(this, new TimerEvent(), _timeBetweenSending);
 				
 			}
+			else if(setup && _sentmsg == swapRouterAfter) {
+				_sentmsg++;
+				send(_peer,new Disconnect(getAddr()), 0);
+				Link newLink = new Link();
+				newLink.setConnector(this);
+				_peer = newLink;
+				int i = _newRouter.getEmptyInterface();
+				if(i>=0) {
+					_newRouter.connectInterface(i, newLink, this);	
+				}
+				setup = false;
+				sendSolicitationRequest();
+			}
+		}
+		else if(ev instanceof ProvideNewAddr) 
+		{
+			ProvideNewAddr pna = (ProvideNewAddr)ev;
+			_toNetwork = pna.source().networkId();
+			_toHost = pna.source().nodeId();
 		}
 		else if(ev instanceof Migrate) 
 		{
-			System.out.println("Node "+_id.networkId()+ "." + _id.nodeId()+ " moved to new interface: " + ((Migrate)ev).success());
+			Migrate mig = (Migrate)ev;
+			if(mig.getNewLink() != null) {
+				_peer = mig.getNewLink();
+				System.out.println("Node migrated to new interface");
+			}
+			else 
+				System.out.println("Node did not migrate");
+			
+		}
+		else if(ev instanceof UniqueAddr) {
+			if(((UniqueAddr) ev).isUnique()) {
+				NetworkAddr addr = ((UniqueAddr) ev).getAddr();
+				oldAddress = new NetworkAddr(_id.networkId(), _id.nodeId());
+				_id.updateAddr(addr.networkId(), addr.nodeId());
+				send(_peer, new BindingRequest(_id, new NetworkAddr(oldAddress.networkId(), 0), _sentmsg, oldAddress),0);
+				_sentmsg++;
+				System.out.println("Node is ready to communicate with new address " +toString());
+				setup = true;
+			}
+			else {
+				System.out.println(toString() +" did not find unique address testing new address");
+				((UniqueAddr)ev).getAddr().incrementAddr();
+				send(_peer, ev, 0);
+			}
+		}
+		else if(ev instanceof BindingAck) 
+		{
+			System.out.println("Binding complete");
 		}
 		else if(ev instanceof Advertisement)
 		{
+			if(!setup) {
+				NetworkAddr addr = new NetworkAddr(((Advertisement)ev).source().networkId(),((Advertisement)ev).source().networkId()+1 );
+				send(_peer, new UniqueAddr(addr), 0);
+			}
 			System.out.println(this.toString() + " Received Advertisement from Router " + ((Advertisement)ev).source());
 		}
 		else if (ev instanceof Message)
 		{
 			System.out.println("Node "+_id.networkId()+ "." + _id.nodeId() +" receives message with seq: "+((Message) ev).seq() + " at time "+SimEngine.getTime());
+		}
+		if(ev instanceof ForwardMessage) {
+			ForwardMessage fm = (ForwardMessage) ev;
+			send(_peer, new ProvideNewAddr(_id,fm.getOriginalSource(),_seq) , 0);
+			System.out.println("Send new address to other host");
 		}
 	}
 }

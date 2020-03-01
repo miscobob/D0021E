@@ -29,6 +29,13 @@ public class Link extends SimEnt{
 		else if(_connectorB == connected)
 			_connectorB=null;
 	}
+	
+	public SimEnt getOther(SimEnt ent) {
+		if(ent == _connectorA)
+			return _connectorB;
+		else
+			return _connectorA;
+	}
 
 	// Called when a message enters the link
 	

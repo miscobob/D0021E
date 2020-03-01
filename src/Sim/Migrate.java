@@ -5,17 +5,18 @@ package Sim;
 // number
 
 public class Migrate implements Event{
-	private Node _source;
+	private NetworkAddr _source;
 	private int _newInterface;
+	private Link newLink;
 	private boolean _success = false;
-	public Migrate (Node from, int newInterface)
+	public Migrate (NetworkAddr from, int newInterface)
 	{
 		_source = from;
 		_newInterface = newInterface;
 	}
 	
-	public void isSuccess(boolean success) {
-		_success = success;
+	public void newLink(Link link) {
+		newLink = link;
 	}
 	
 	public int newInterface() 
@@ -23,13 +24,13 @@ public class Migrate implements Event{
 		return _newInterface;
 	}
 	
-	public Node source()
+	public NetworkAddr source()
 	{
 		return _source; 
 	}
-	
-	public boolean success() {
-		return _success;
+	public Link getNewLink() 
+	{
+		return newLink;
 	}
 
 	public void entering(SimEnt locale)

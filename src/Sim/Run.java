@@ -29,10 +29,10 @@ public class Run {
 		//host1.changeInterfaceAfter(11, 2);
 		
 		//Network, Node, Messages per second, Seconds to send
-		//host2.StartSending(1, 1, 20, 1, 0);
-		//host1.StartSending(1, 1, 20, 1, 20);
-		host2.sendSolicitationRequest();
-		
+		host2.StartSending(0, 1, 10, 1, 0);
+		host1.StartSending(1, 1, 10, 1, 10);
+		host1.changeRouterAfter(5, routeNode2);
+		//host2.sendSolicitationRequest();
 		
 		
 		Thread t=new Thread(SimEngine.instance());

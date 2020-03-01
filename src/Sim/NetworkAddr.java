@@ -25,6 +25,14 @@ public class NetworkAddr {
 		return _nodeId;
 	}
 	
+	public void updateAddr(int networkId, int nodeId) {
+		_networkId = networkId;
+		_nodeId = nodeId;
+	}
+	public void incrementAddr() {
+		_nodeId++;
+	}
+	
 	public boolean sameNetwork(NetworkAddr addr) {
 		return addr._networkId == this._networkId;
 	}
@@ -38,4 +46,17 @@ public class NetworkAddr {
 	{
 		return this._networkId + "." + this.nodeId();
 	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if(obj instanceof NetworkAddr) {
+			return SameAddress((NetworkAddr)obj);
+		}
+		return false;
+	}
+	@Override
+	public int hashCode() {
+		return _networkId+_nodeId;
+	}
 }
+
