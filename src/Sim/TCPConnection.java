@@ -17,10 +17,10 @@ public class TCPConnection
 	private int duplicateAck = 0;
 	private int packetSpeed;
 	private threewayHandshakeStep ths = threewayHandshakeStep.First;
-	private fourwayHandshakeStep fhs = fourwayHandshakeStep.First;
-	private boolean startClosing = false;
+	private fourwayHandshakeStep fhs = null;
 	private NetworkAddr correspondant;
 	private NetworkAddr self;
+	private double rtt;
 	
 	public TCPConnection(NetworkAddr correspondant, NetworkAddr self) 
 	{
@@ -28,6 +28,7 @@ public class TCPConnection
 		this.self = self;
 		sequence = 0;
 		ack = 0;
+		packetSpeed = 1;
 	} 
 	
 	
@@ -36,10 +37,6 @@ public class TCPConnection
 		if(message.seq() == ack) 
 		{
 			ack++;
-		}
-		else 
-		{
-			
 		}
 		if(sequence < message.ack())
 		{
@@ -52,31 +49,10 @@ public class TCPConnection
 		}
 		TCPType reply;
 		if(ths != threewayHandshakeStep.Complete)
-			switch(ths) 
-			{
-			case First:
-				if(message.type() == TCPType.SYN) 
-				{
-					reply = TCPType.SYNACK;
-					ths = threewayHandshakeStep.Third;
-				}
-				break;
-			case Second:
-				if(message.type() == TCPType.SYNACK) 
-				{
-					reply = TCPType.ACK;
-					ths = threewayHandshakeStep.Complete;
-				}
-				break;
-			case Third:
-				if(message.type() == TCPType.ACK)
-					ths = threewayHandshakeStep.Complete;
-				break;
-			default:
-				System.out.println("Failed in setting up the TCP to node " + correspondant);
-				break;
-			}
-		else if(startClosing) 
+		{
+			reply = OpeningConnectionStep(message.type());
+		}
+		else if(fhs != null) 
 		{
 			
 		}
@@ -97,6 +73,62 @@ public class TCPConnection
 					break;
 			}
 		return null;
+	}
+	
+	private TCPType OpeningConnectionStep(TCPType type) 
+	{
+		TCPType reply = null;
+		switch(ths) 
+		{
+		case First:
+			if(type == TCPType.SYN) 
+			{
+				reply = TCPType.SYNACK;
+				ths = threewayHandshakeStep.Third;
+			}
+			break;
+		case Second:
+			if(type == TCPType.SYNACK) 
+			{
+				reply = TCPType.ACK;
+				ths = threewayHandshakeStep.Complete;
+			}
+			break;
+		case Third:
+			if(type == TCPType.ACK)
+				ths = threewayHandshakeStep.Complete;
+			
+			break;
+		default:
+			System.out.println("Failed in setting up the TCP to node " + correspondant);
+			
+		}	
+		return reply;
+	}
+	
+	public double getRTT() 
+	{
+		return rtt;
+	}
+	
+	public void setRTT(double rtt) 
+	{
+		this.rtt = rtt;
+	}
+	
+	public boolean connectionEstablished() 
+	{
+		return ths == threewayHandshakeStep.Complete && !(fhs != null);
+	}
+	
+	public int getDuplicateAcks() 
+	{
+		return duplicateAck;
+	}
+	
+	public int getSpeed() 
+	{
+		return packetSpeed;
 	}
 	
 	public int ack() 
