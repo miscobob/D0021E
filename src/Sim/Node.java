@@ -98,6 +98,17 @@ public class Node extends SimEnt {
 			for (TCPConnection con : connections) {
 				if (con.getDuplicateAcks() >= 3) {
 					con.setCongestionSize((int)Math.ceil(con.getCongestionSize()/2.0));
+					con.setIncrementStage(TCPConnection.incrementStage.Constant);
+					if (con.getCongestionSize() < 2) {
+						con.setCongestionSize(2);
+					}
+				}
+				else if (con.timedOut()) {
+					con.setCongestionSize(1);
+					con.setIncrementStage(TCPConnection.incrementStage.Exponential);
+				}
+				else if (con.getCongestionSize() >= con.getThreshold()) {
+					con.setIncrementStage(TCPConnection.incrementStage.Constant);
 				}
 			}
 			if (setup && _stopSendingAfter > _sentmsg && ((_sentmsg != swapRouterAfter&&_sentmsg != swapInterfaceAfter)||_sentmsg == 0))
