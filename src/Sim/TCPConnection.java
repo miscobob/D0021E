@@ -116,6 +116,45 @@ public class TCPConnection
 		return reply;
 	}
 	
+
+	private TCPType closingConnectionStep(TCPType type) //maybe?
+	{
+		TCPType reply = null;
+		switch(fhs) 
+		{
+		case First:
+			reply = TCPType.SYNACK;
+			fhs = fourwayHandshakeStep.Second;
+			
+			break;
+		case Second:
+			if(type == TCPType.FINACK) 
+			{
+				reply = TCPType.ACK;
+				fhs = fourwayHandshakeStep.Complete;
+			}
+			break;
+		case Third:
+			if(type == TCPType.FINACK) 
+			{
+				reply = TCPType.ACK;
+				fhs = fourwayHandshakeStep.Complete;
+			}
+			break;
+		case Fourth:
+			if(type == TCPType.ACK)
+				fhs = fourwayHandshakeStep.Complete;
+			
+			break;
+		default:
+			if(type == TCPType.FIN)
+				fhs = fourwayHandshakeStep.Second;
+			break;
+			
+		}	
+		return reply;
+	}
+	
 	public double getRTT() 
 	{
 		return rtt;
