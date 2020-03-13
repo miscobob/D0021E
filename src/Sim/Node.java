@@ -110,36 +110,42 @@ public class Node extends SimEnt {
 				else if (con.getCongestionSize() >= con.getThreshold()) {
 					con.setIncrementStage(TCPConnection.incrementStage.Constant);
 				}
-			}
-			if (setup && _stopSendingAfter > _sentmsg && ((_sentmsg != swapRouterAfter&&_sentmsg != swapInterfaceAfter)||_sentmsg == 0))
-			{
-				_sentmsg++;
-				send(_peer, new Message(_id, new NetworkAddr(_toNetwork, _toHost),_seq),0);
-				send(this, new TimerEvent(),_timeBetweenSending);
-				System.out.println("Node "+_id.networkId()+ "." + _id.nodeId() +" sent message with seq: "+_seq + " at time "+SimEngine.getTime());
-				_seq++;
-			}
-			else if(setup && _sentmsg == swapInterfaceAfter)
-			{
-				_sentmsg++;
-				System.out.println("Node "+_id.networkId()+ "." + _id.nodeId() + " sends a request to change interface to interface " + swapTo);
-				send(_peer, new Migrate(getAddr(), swapTo),0);
-				send(this, new TimerEvent(), _timeBetweenSending);
 				
-			}
-			else if(setup && _sentmsg == swapRouterAfter) {
-				_sentmsg++;
-				send(_peer,new Disconnect(getAddr()), 0);
-				Link newLink = new Link();
-				newLink.setConnector(this);
-				_peer = newLink;
-				int i = _newRouter.getEmptyInterface();
-				if(i>=0) {
-					_newRouter.connectInterface(i, newLink, this);	
+				
+				
+				if (setup && _stopSendingAfter > _sentmsg && ((_sentmsg != swapRouterAfter&&_sentmsg != swapInterfaceAfter)||_sentmsg == 0))
+				{
+					_sentmsg++;
+					send(_peer, new Message(_id, new NetworkAddr(_toNetwork, _toHost),_seq),0);
+					send(this, new TimerEvent(),_timeBetweenSending);
+					System.out.println("Node "+_id.networkId()+ "." + _id.nodeId() +" sent message with seq: "+_seq + " at time "+SimEngine.getTime());
+					_seq++;
+					
+					con.setCongestionSize(con.getIncrementStage() == TCPConnection.incrementStage.Constant ? con.getCongestionSize() + 1 : con.getCongestionSize() * 2);
 				}
-				setup = false;
-				sendSolicitationRequest();
+				else if(setup && _sentmsg == swapInterfaceAfter)
+				{
+					_sentmsg++;
+					System.out.println("Node "+_id.networkId()+ "." + _id.nodeId() + " sends a request to change interface to interface " + swapTo);
+					send(_peer, new Migrate(getAddr(), swapTo),0);
+					send(this, new TimerEvent(), _timeBetweenSending);
+					
+				}
+				else if(setup && _sentmsg == swapRouterAfter) {
+					_sentmsg++;
+					send(_peer,new Disconnect(getAddr()), 0);
+					Link newLink = new Link();
+					newLink.setConnector(this);
+					_peer = newLink;
+					int i = _newRouter.getEmptyInterface();
+					if(i>=0) {
+						_newRouter.connectInterface(i, newLink, this);	
+					}
+					setup = false;
+					sendSolicitationRequest();
+				}
 			}
+			
 		}
 		else if(ev instanceof ProvideNewAddr) 
 		{
