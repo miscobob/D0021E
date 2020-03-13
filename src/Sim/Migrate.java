@@ -8,7 +8,6 @@ public class Migrate implements Event{
 	private NetworkAddr _source;
 	private int _newInterface;
 	private Link newLink;
-	private boolean _success = false;
 	public Migrate (NetworkAddr from, int newInterface)
 	{
 		_source = from;

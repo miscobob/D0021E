@@ -1,7 +1,6 @@
 package Sim;
 
 import java.util.Random;
-import java.lang.Math;
 
 public class Gaussian extends Node {
 

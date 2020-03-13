@@ -5,6 +5,7 @@ package Sim;
 // are used to solve the conflict of who goes first. 
 
 
+@SuppressWarnings("rawtypes")
 class SimTimeSlot implements Comparable {
 	double _msek;
 	long _resolver;

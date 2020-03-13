@@ -1,7 +1,6 @@
 package Sim;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Random;
 /**
  * A class intended to show the effects of a bad link in a network
@@ -26,8 +25,8 @@ public class LossyLink  extends Link{
 		this.random = new Random();
 		
 	}
-	public ArrayList<Integer> jitterAList = new ArrayList();
-	public ArrayList<Integer> jitterBList = new ArrayList();
+	public ArrayList<Integer> jitterAList = new ArrayList<Integer>();
+	public ArrayList<Integer> jitterBList = new ArrayList<Integer>();
 	public int numberOfPacketsSentByA = 0;
 	public int numberOfPacketsSentByB = 0;
 	public int jitterA;

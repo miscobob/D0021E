@@ -9,6 +9,7 @@ import java.util.TreeMap;
 public final class SimEngine implements Runnable {
 
 	private static SimEngine _instance;
+	@SuppressWarnings("rawtypes")
 	private final TreeMap _simTimeTree = new TreeMap();
 	private boolean _quit = false;
 	private static double _simTime = 0;
@@ -17,6 +18,7 @@ public final class SimEngine implements Runnable {
 	// This method is called to when scheduling an event for some target. Examples of events are messages,
 	// timer events etc.
 	
+	@SuppressWarnings("unchecked")
 	public EventHandle register(SimEnt registrator, SimEnt target, Event event, double delayedExecution)
 	{
 		double scheduleForTime = getTime() + delayedExecution;

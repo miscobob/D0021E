@@ -41,7 +41,6 @@ public class TCPConnection
 	
 	public TCPMessage reply(TCPMessage message) 
 	{
-		TCPMessage msgToSend = new TCPMessage(self, correspondant, sequence, ack, null); //default values, fix mr little mick
 		
 		if(message.seq() == ack) 
 		{
@@ -56,7 +55,7 @@ public class TCPConnection
 		{
 			duplicateAck++;
 		}
-		TCPType reply;
+		TCPType reply = null;
 		if(ths != threewayHandshakeStep.Complete)
 		{
 			reply = OpeningConnectionStep(message.type());
@@ -81,6 +80,8 @@ public class TCPConnection
 				default:
 					break;
 			}
+
+		TCPMessage msgToSend = new TCPMessage(self, correspondant, sequence, ack, reply);
 		return msgToSend;
 	}
 	

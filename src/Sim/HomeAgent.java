@@ -35,6 +35,7 @@ public class HomeAgent extends SimEnt{
 		return remoteNodes.get(localAddress);
 	}
 	
+	@SuppressWarnings("unused")
 	private void removeAddr(NetworkAddr remoteAddr) 
 	{
 		remoteNodes.remove(remoteAddr);

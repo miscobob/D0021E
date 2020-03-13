@@ -6,6 +6,7 @@ package Sim;
 public class CBR extends Node {
 	private NetworkAddr _id;
 	private SimEnt _peer;
+	@SuppressWarnings("unused")
 	private int _sentmsg=0;
 	private int _seq = 0;
 	
