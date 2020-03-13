@@ -1,7 +1,5 @@
 package Sim;
 
-import java.util.ArrayList;
-
 public class TCPConnection 
 {
 	public enum threewayHandshakeStep
@@ -24,16 +22,15 @@ public class TCPConnection
 	private threewayHandshakeStep ths = threewayHandshakeStep.First;
 	private fourwayHandshakeStep fhs = null;
 	private NetworkAddr correspondant;
-	private NetworkAddr self;
 	private double rtt;
+	private double srtt = -1;
 	private int threshold = 32;
 	private incrementStage stage = incrementStage.Exponential;
 	
 	
-	public TCPConnection(NetworkAddr correspondant, NetworkAddr self) 
+	public TCPConnection(NetworkAddr correspondant) 
 	{
 		this.correspondant = correspondant;
-		this.self = self;
 		sequence = 0;
 		ack = 0;
 		congestionSize = 1;
@@ -122,18 +119,25 @@ public class TCPConnection
 	public void setRTT(double rtt) 
 	{
 		this.rtt = rtt;
+		if(srtt == -1)
+			srtt = rtt;
 	}
 	
-	public double getSRTT()
+	public double calculateSRTT()
 	{
 		double alpha = 0.8; //between 0.8 and 0.9
 		
-		return 0.0;
+		double value = (alpha * srtt) + ((1 - alpha) * rtt);
+		
+		srtt = value;
+				
+		return value;
 	}
 	
 	public double getRTO()
 	{
-		return 0.0;
+		double beta = 1.3; //between 1.3 and 2.0
+		return Math.min(64, Math.max(1, (beta * srtt)));
 	}
 	
 	public boolean timedOut() //implement at some point idk fam
@@ -143,7 +147,7 @@ public class TCPConnection
 	
 	public boolean connectionEstablished() 
 	{
-		return ths == threewayHandshakeStep.Complete && !(fhs != null);
+		return ths == threewayHandshakeStep.Complete && fhs == null;
 	}
 	
 	public int getDuplicateAcks() 
