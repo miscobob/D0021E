@@ -124,6 +124,23 @@ public class TCPConnection
 		this.rtt = rtt;
 	}
 	
+	public double getSRTT()
+	{
+		double alpha = 0.8; //between 0.8 and 0.9
+		
+		return 0.0;
+	}
+	
+	public double getRTO()
+	{
+		return 0.0;
+	}
+	
+	public boolean timedOut() //implement at some point idk fam
+	{
+		return false;
+	}
+	
 	public boolean connectionEstablished() 
 	{
 		return ths == threewayHandshakeStep.Complete && !(fhs != null);
