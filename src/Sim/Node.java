@@ -1,4 +1,7 @@
 package Sim;
+import java.util.ArrayList;
+import java.lang.Math;
+
 
 // This class implements a node (host) it has an address, a peer that it communicates with
 // and it count messages send and received.
@@ -10,6 +13,8 @@ public class Node extends SimEnt {
 	private int _seq = 0;
 	private NetworkAddr oldAddress;
 	private boolean setup = true;
+	private ArrayList<TCPConnection> connections = new ArrayList<TCPConnection>();
+	
 
 	
 	public Node (int network, int node)
@@ -89,7 +94,12 @@ public class Node extends SimEnt {
 	{
 		
 		if (ev instanceof TimerEvent)
-		{			
+		{
+			for (TCPConnection con : connections) {
+				if (con.getDuplicateAcks() >= 3) {
+					con.setCongestionSize((int)Math.ceil(con.getCongestionSize()/2.0));
+				}
+			}
 			if (setup && _stopSendingAfter > _sentmsg && ((_sentmsg != swapRouterAfter&&_sentmsg != swapInterfaceAfter)||_sentmsg == 0))
 			{
 				_sentmsg++;

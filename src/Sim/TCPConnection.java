@@ -12,15 +12,23 @@ public class TCPConnection
 	{
 		First, Second, Third, Fourth, Complete
 	}
+	public enum incrementStage 
+	{
+		Exponential, Constant
+	}
+	
 	private int sequence;
 	private int ack;
 	private int duplicateAck = 0;
-	private int packetSpeed;
+	private int congestionSize;
 	private threewayHandshakeStep ths = threewayHandshakeStep.First;
 	private fourwayHandshakeStep fhs = null;
 	private NetworkAddr correspondant;
 	private NetworkAddr self;
 	private double rtt;
+	private int threshold = 32;
+	private incrementStage stage = incrementStage.Exponential;
+	
 	
 	public TCPConnection(NetworkAddr correspondant, NetworkAddr self) 
 	{
@@ -28,7 +36,7 @@ public class TCPConnection
 		this.self = self;
 		sequence = 0;
 		ack = 0;
-		packetSpeed = 1;
+		congestionSize = 1;
 	} 
 	
 	
@@ -126,9 +134,13 @@ public class TCPConnection
 		return duplicateAck;
 	}
 	
-	public int getSpeed() 
+	public int getCongestionSize() 
 	{
-		return packetSpeed;
+		return congestionSize;
+	}
+	
+	public void setCongestionSize(int size) {
+		congestionSize = size;
 	}
 	
 	public int ack() 
@@ -145,4 +157,16 @@ public class TCPConnection
 	{
 		return correspondant;
 	}
+	
+	public int getThreshold() {
+		return threshold;
+	}
+	public void setIncrementStage(incrementStage _stage) {
+		stage = _stage;
+	}
+	
+	public incrementStage getIncrementStage() {
+		return stage;
+	}
+	
 }
