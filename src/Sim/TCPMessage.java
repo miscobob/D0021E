@@ -11,7 +11,7 @@ public class TCPMessage extends Message {
 		this.type = type;
 	}
 
-	public int nextSequance() {
+	public int ack() {
 		return ack;
 	}
 	
