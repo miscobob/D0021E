@@ -22,15 +22,17 @@ public class TCPConnection
 	private threewayHandshakeStep ths = threewayHandshakeStep.First;
 	private fourwayHandshakeStep fhs = null;
 	private NetworkAddr correspondant;
+	private NetworkAddr self;
 	private double rtt;
 	private double srtt = -1;
 	private int threshold = 32;
 	private incrementStage stage = incrementStage.Exponential;
 	
 	
-	public TCPConnection(NetworkAddr correspondant) 
+	public TCPConnection(NetworkAddr correspondant, NetworkAddr self) 
 	{
 		this.correspondant = correspondant;
+		this.self = self;
 		sequence = 0;
 		ack = 0;
 		congestionSize = 1;
@@ -39,6 +41,8 @@ public class TCPConnection
 	
 	public TCPMessage reply(TCPMessage message) 
 	{
+		TCPMessage msgToSend = new TCPMessage(self, correspondant, sequence, ack, null); //default values, fix mr little mick
+		
 		if(message.seq() == ack) 
 		{
 			ack++;
@@ -77,7 +81,7 @@ public class TCPConnection
 				default:
 					break;
 			}
-		return null;
+		return msgToSend;
 	}
 	
 	private TCPType OpeningConnectionStep(TCPType type) 

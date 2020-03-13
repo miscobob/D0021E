@@ -157,15 +157,15 @@ public class Node extends SimEnt {
 				if(msg.source() == con.correspondant()) 
 				{ //Sender already has a started TCP connection
 					flag = true;
-					con.reply(msg);
+					send(_peer, con.reply(msg), 0);
 				}
 			}
 			
 			if(flag == false) 
 			{
 				//Sender has not established a connection yet
-				TCPConnection con = new TCPConnection(msg.source());
-				con.reply(msg);
+				TCPConnection con = new TCPConnection(msg.source(), this._id);
+				send(_peer, con.reply(msg), 0);
 				connections.add(con);
 			}
 		}
