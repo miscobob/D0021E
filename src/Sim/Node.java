@@ -147,6 +147,29 @@ public class Node extends SimEnt {
 			}
 			
 		}
+		else if(ev instanceof TCPMessage)
+		{
+			TCPMessage msg = (TCPMessage)ev;
+			
+			boolean flag = false;
+			for(TCPConnection con : connections)
+			{
+				if(msg.source() == con.correspondant()) 
+				{ //Sender already has a started TCP connection
+					flag = true;
+					con.reply(msg);
+				}
+			}
+			
+			if(flag == false) 
+			{
+				//Sender has not established a connection yet
+				TCPConnection con = new TCPConnection(msg.source());
+				con.reply(msg);
+				connections.add(con);
+			}
+		}
+		
 		else if(ev instanceof ProvideNewAddr) 
 		{
 			ProvideNewAddr pna = (ProvideNewAddr)ev;
