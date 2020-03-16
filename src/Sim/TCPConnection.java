@@ -1,5 +1,7 @@
 package Sim;
 
+import java.util.HashMap;
+
 public class TCPConnection 
 {
 	public enum threewayHandshakeStep
@@ -19,6 +21,7 @@ public class TCPConnection
 	private int ack;
 	private int duplicateAck = 0;
 	private int congestionSize;
+	private int closeCondition;
 	private threewayHandshakeStep ths = threewayHandshakeStep.First;
 	private fourwayHandshakeStep fhs = null;
 	private NetworkAddr correspondant;
@@ -27,25 +30,51 @@ public class TCPConnection
 	private double srtt = -1;
 	private int threshold = 32;
 	private incrementStage stage = incrementStage.Exponential;
+	private HashMap<Integer,TCPMessage>messages;
+	public final static int noCloseCodition = -1;
 	
 	
-	public TCPConnection(NetworkAddr correspondant, NetworkAddr self) 
+	public TCPConnection(NetworkAddr correspondant, NetworkAddr self, int closeCondition) 
 	{
 		this.correspondant = correspondant;
 		this.self = self;
 		sequence = 0;
 		ack = 0;
 		congestionSize = 1;
+		this.closeCondition = closeCondition;
 	} 
 	
+	public TCPMessage openingConnectionMessage() 
+	{
+		return new TCPMessage(self, correspondant, sequence, ack, TCPType.SYN);
+	}
+	
+	public TCPMessage nextMessage() 
+	{
+		TCPMessage msg = new TCPMessage(self, correspondant, sequence, ack, null);
+		sequence++;
+		return closeCondition != noCloseCodition ? msg : null;
+	}
 	
 	public TCPMessage reply(TCPMessage message) 
 	{
 		
 		if(message.seq() == ack) 
 		{
+			messages.remove(ack);
 			ack++;
 		}
+		else if(message.seq() < ack) 
+		{
+			return null;
+		}
+		else 
+		{
+			if(message.seq() > ack)
+				messages.remove(message.seq());
+			return messages.get(ack);
+		}
+		
 		if(sequence < message.ack())
 		{
 			sequence = message.ack();
@@ -68,26 +97,34 @@ public class TCPConnection
 			switch(message.type()) 
 				{
 				case ACK :
-					break; 
-				case SYN :
+					System.out.println("Received ACK when it was expected");
+					if(ack >= closeCondition)
+						reply = TCPType.FIN;
+					else
+						return null;
 					break;
+				case SYN :
+					System.out.println("Received SYN when it was not expected");
+					return null;
 				case FIN :
 					fhs = fourwayHandshakeStep.First;
 					reply = closingConnectionStep(message.type());
 					break;
 				case SYNACK :
 					System.out.println("Received SYNACK when it was not expected");
-					break;
+					return null;
 				case FINACK :
 					System.out.println("Received FINACK when it was not expected");
-					break;
+					return null;
 				default:
-					System.out.println("Received TCPMessage with null type");
+					reply = TCPType.ACK;
+					System.out.println("Received TCPMessage to return data");
 					break;
 			}
-
 		TCPMessage msgToSend = new TCPMessage(self, correspondant, sequence, ack, reply);
+		messages.put(ack, msgToSend);
 		return msgToSend;
+		
 	}
 	
 	private TCPType OpeningConnectionStep(TCPType type) 

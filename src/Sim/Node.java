@@ -87,6 +87,12 @@ public class Node extends SimEnt {
 		send(_peer, new Solicit(this._id, 0), 0);
 	}
 	
+	public void setUpTCP(NetworkAddr addr, int closeCondition) 
+	{
+		TCPConnection con = new TCPConnection(addr,this.getAddr(), closeCondition);
+		send(_peer, con.openingConnectionMessage(), 0);
+	}
+	
 //**********************************************************************************	
 	
 	// This method is called upon that an event destined for this node triggers.
@@ -96,56 +102,18 @@ public class Node extends SimEnt {
 		if (ev instanceof TimerEvent)
 		{
 			for (TCPConnection con : connections) {
-				if (con.getDuplicateAcks() >= 3) {
-					con.setCongestionSize((int)Math.ceil(con.getCongestionSize()/2.0));
-					con.setIncrementStage(TCPConnection.incrementStage.Constant);
-					if (con.getCongestionSize() < 2) {
-						con.setCongestionSize(2);
-					}
-				}
-				else if (con.timedOut()) {
-					con.setCongestionSize(1);
-					con.setIncrementStage(TCPConnection.incrementStage.Exponential);
-				}
-				else if (con.getCongestionSize() >= con.getThreshold()) {
-					con.setIncrementStage(TCPConnection.incrementStage.Constant);
-				}
+				reno(con);
 				
-				
-				
-				if (setup && _stopSendingAfter > _sentmsg && ((_sentmsg != swapRouterAfter&&_sentmsg != swapInterfaceAfter)||_sentmsg == 0))
+				TCPMessage reply = con.nextMessage();
+				if(reply != null)
 				{
-					_sentmsg++;
-					send(_peer, new Message(_id, new NetworkAddr(_toNetwork, _toHost),_seq),0);
-					send(this, new TimerEvent(),_timeBetweenSending);
-					System.out.println("Node "+_id.networkId()+ "." + _id.nodeId() +" sent message with seq: "+_seq + " at time "+SimEngine.getTime());
-					_seq++;
-					
 					con.setCongestionSize(con.getIncrementStage() == TCPConnection.incrementStage.Constant ? con.getCongestionSize() + 1 : con.getCongestionSize() * 2);
+					for(float i = 0; i<con.getCongestionSize(); i++) 
+						send(_peer, reply, i*((float)1/(float)con.getCongestionSize()));
 				}
-				else if(setup && _sentmsg == swapInterfaceAfter)
-				{
-					_sentmsg++;
-					System.out.println("Node "+_id.networkId()+ "." + _id.nodeId() + " sends a request to change interface to interface " + swapTo);
-					send(_peer, new Migrate(getAddr(), swapTo),0);
-					send(this, new TimerEvent(), _timeBetweenSending);
-					
-				}
-				else if(setup && _sentmsg == swapRouterAfter) {
-					_sentmsg++;
-					send(_peer,new Disconnect(getAddr()), 0);
-					Link newLink = new Link();
-					newLink.setConnector(this);
-					_peer = newLink;
-					int i = _newRouter.getEmptyInterface();
-					if(i>=0) {
-						_newRouter.connectInterface(i, newLink, this);	
-					}
-					setup = false;
-					sendSolicitationRequest();
-				}
+				
+				//onTimerEvent();
 			}
-			
 		}
 		else if(ev instanceof TCPMessage)
 		{
@@ -157,14 +125,16 @@ public class Node extends SimEnt {
 				if(msg.source() == con.correspondant()) 
 				{ //Sender already has a started TCP connection
 					flag = true;
-					send(_peer, con.reply(msg), 0);
+					TCPMessage reply = con.reply(msg);
+					if(reply != null)
+						send(_peer, reply, 0);
 				}
 			}
 			
 			if(flag == false) 
 			{
 				//Sender has not established a connection yet
-				TCPConnection con = new TCPConnection(msg.source(), this._id);
+				TCPConnection con = new TCPConnection(msg.source(), this._id, TCPConnection.noCloseCodition);
 				send(_peer, con.reply(msg), 0);
 				connections.add(con);
 			}
@@ -223,6 +193,58 @@ public class Node extends SimEnt {
 			ForwardMessage fm = (ForwardMessage) ev;
 			send(_peer, new ProvideNewAddr(_id,fm.getOriginalSource(),_seq) , 0);
 			System.out.println("Send new address to other host");
+		}
+	}
+
+
+	private void reno(TCPConnection con) {
+		if (con.getDuplicateAcks() >= 3) {
+			con.setCongestionSize((int)Math.ceil(con.getCongestionSize()/2.0));
+			con.setIncrementStage(TCPConnection.incrementStage.Constant);
+			if (con.getCongestionSize() < 2) {
+				con.setCongestionSize(2);
+			}
+		}
+		else if (con.timedOut()) {
+			con.setCongestionSize(1);
+			con.setIncrementStage(TCPConnection.incrementStage.Exponential);
+		}
+		else if (con.getCongestionSize() >= con.getThreshold()) {
+			con.setIncrementStage(TCPConnection.incrementStage.Constant);
+		}
+	}
+
+
+	private void onTimerEvent() {
+		if (setup && _stopSendingAfter > _sentmsg && ((_sentmsg != swapRouterAfter&&_sentmsg != swapInterfaceAfter)||_sentmsg == 0))
+		{
+			_sentmsg++;
+			send(_peer, new Message(_id, new NetworkAddr(_toNetwork, _toHost),_seq),0);
+			send(this, new TimerEvent(),_timeBetweenSending);
+			System.out.println("Node "+_id.networkId()+ "." + _id.nodeId() +" sent message with seq: "+_seq + " at time "+SimEngine.getTime());
+			_seq++;
+			
+		}
+		else if(setup && _sentmsg == swapInterfaceAfter)
+		{
+			_sentmsg++;
+			System.out.println("Node "+_id.networkId()+ "." + _id.nodeId() + " sends a request to change interface to interface " + swapTo);
+			send(_peer, new Migrate(getAddr(), swapTo),0);
+			send(this, new TimerEvent(), _timeBetweenSending);
+			
+		}
+		else if(setup && _sentmsg == swapRouterAfter) {
+			_sentmsg++;
+			send(_peer,new Disconnect(getAddr()), 0);
+			Link newLink = new Link();
+			newLink.setConnector(this);
+			_peer = newLink;
+			int i = _newRouter.getEmptyInterface();
+			if(i>=0) {
+				_newRouter.connectInterface(i, newLink, this);	
+			}
+			setup = false;
+			sendSolicitationRequest();
 		}
 	}
 }
