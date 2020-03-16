@@ -8,7 +8,7 @@ public class TCPConnection
 	}
 	public enum fourwayHandshakeStep
 	{
-		First, Second, Third, Fourth, Complete
+		First, Second, Third, Complete
 	}
 	public enum incrementStage 
 	{
@@ -72,6 +72,7 @@ public class TCPConnection
 				case SYN :
 					break;
 				case FIN :
+					fhs = fourwayHandshakeStep.First;
 					reply = closingConnectionStep(message.type());
 					break;
 				case SYNACK :
@@ -127,8 +128,8 @@ public class TCPConnection
 		switch(fhs) 
 		{
 		case First:
-			reply = TCPType.SYNACK;
-			fhs = fourwayHandshakeStep.Second;
+			reply = TCPType.FINACK;
+			fhs = fourwayHandshakeStep.Third;
 			
 			break;
 		case Second:
@@ -139,13 +140,6 @@ public class TCPConnection
 			}
 			break;
 		case Third:
-			if(type == TCPType.FINACK) 
-			{
-				reply = TCPType.ACK;
-				fhs = fourwayHandshakeStep.Complete;
-			}
-			break;
-		case Fourth:
 			if(type == TCPType.ACK)
 				fhs = fourwayHandshakeStep.Complete;
 			
