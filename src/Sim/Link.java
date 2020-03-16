@@ -5,7 +5,7 @@ package Sim;
 public class Link extends SimEnt{
 	protected SimEnt _connectorA=null;
 	protected SimEnt _connectorB=null;
-	private int _now=0;
+	protected int _now=0;
 	
 	public Link()
 	{
