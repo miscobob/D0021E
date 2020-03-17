@@ -2,7 +2,7 @@ package Sim;
 
 import java.util.HashMap;
 
-public class TCPConnection 
+public class TCPConnection
 {
 	public enum threewayHandshakeStep
 	{
@@ -54,6 +54,7 @@ public class TCPConnection
 	
 	public TCPMessage nextMessage() 
 	{
+		ack++;
 		TCPMessage msg = new TCPMessage(self, correspondant, sequence, ack, null);
 		sequence++;
 		return closeCondition != noCloseCodition && ths == threewayHandshakeStep.Complete && fhs == null ? msg : null;
@@ -93,6 +94,8 @@ public class TCPConnection
 			System.out.println(this.self.toString() + " Handling opening three-way handshake with " + message.source().toString());
 			reply = OpeningConnectionStep(message.type());
 			System.out.println(this.self.toString() + " Currently at step " + this.ths.toString());
+			if(reply == null)
+				return null;
 		}
 		else if(fhs != null) 
 		{
@@ -101,6 +104,7 @@ public class TCPConnection
 			System.out.println(this.self.toString() + " Currently at step " + this.fhs.toString());
 		}
 		else
+			if(message.type() != null)
 			switch(message.type()) 
 				{
 				case ACK :
@@ -127,6 +131,10 @@ public class TCPConnection
 					reply = TCPType.ACK;
 					System.out.println("Received TCPMessage to return data");
 					break;
+			}
+			else {
+				reply = TCPType.ACK;
+				System.out.println("Received TCPMessage to return data");
 			}
 		TCPMessage msgToSend = new TCPMessage(self, correspondant, sequence, ack, reply);
 		messages.put(ack, msgToSend);

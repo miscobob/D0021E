@@ -34,6 +34,7 @@ public class Run {
 		//host1.changeRouterAfter(5, routeNode2);
 		//host2.sendSolicitationRequest();
 		host1.setupTCP(host2._id, 100);
+		host1.send(host1, new TimerEvent(), 1);
 		
 		Thread t=new Thread(SimEngine.instance());
 	

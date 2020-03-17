@@ -123,6 +123,7 @@ public class Node extends SimEnt {
 				
 				//onTimerEvent();
 			}
+			send(this, new TimerEvent(), 1);
 		}
 		else if(ev instanceof TCPMessage)
 		{
@@ -131,7 +132,6 @@ public class Node extends SimEnt {
 			boolean flag = false;
 			for(TCPConnection con : connections)
 			{
-				System.out.print(msg.source().toString() + " " + con.correspondant().toString());
 				if(msg.source().equals(con.correspondant())) 
 				{ //Sender already has a started TCP connection
 					flag = true;
