@@ -33,7 +33,7 @@ public class Run {
 		//host1.StartSending(1, 1, 10, 1, 10);
 		//host1.changeRouterAfter(5, routeNode2);
 		//host2.sendSolicitationRequest();
-		host1.startTCPConnection(host2._id);
+		host1.setupTCP(host2._id, 100);
 		
 		Thread t=new Thread(SimEngine.instance());
 	

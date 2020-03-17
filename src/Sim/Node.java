@@ -23,12 +23,12 @@ public class Node extends SimEnt {
 		setNetworkAddr(network, node);
 		//_id = new NetworkAddr(network, node);
 	}	
-	
+	/*
 	public void startTCPConnection(NetworkAddr to)
 	{
 		TCPConnection con = new TCPConnection(to, this.getAddr(), _sentmsg);
 		send(_peer, con.openingConnectionMessage(), 0);
-	}
+	}*/
 	
 	
 	// Sets the peer to communicate with. This node is single homed
@@ -93,10 +93,11 @@ public class Node extends SimEnt {
 		send(_peer, new Solicit(this._id, 0), 0);
 	}
 	
-	public void setUpTCP(NetworkAddr addr, int closeCondition) 
+	public void setupTCP(NetworkAddr addr, int closeCondition) 
 	{
 		TCPConnection con = new TCPConnection(addr,this.getAddr(), closeCondition);
 		send(_peer, con.openingConnectionMessage(), 0);
+		connections.add(con);
 	}
 	
 //**********************************************************************************	
@@ -104,12 +105,11 @@ public class Node extends SimEnt {
 	// This method is called upon that an event destined for this node triggers.
 	public void recv(SimEnt src, Event ev)
 	{
-		
 		if (ev instanceof TimerEvent)
 		{
 			for (TCPConnection con : connections) {
 				reno(con);
-				
+				System.out.println(con.getths());
 				
 				con.setCongestionSize(con.getIncrementStage() == TCPConnection.incrementStage.Constant ? con.getCongestionSize() + 1 : con.getCongestionSize() * 2);
 				for(float i = 0; i<con.getCongestionSize(); i++) 
@@ -131,12 +131,14 @@ public class Node extends SimEnt {
 			boolean flag = false;
 			for(TCPConnection con : connections)
 			{
-				if(msg.source() == con.correspondant()) 
+				System.out.print(msg.source().toString() + " " + con.correspondant().toString());
+				if(msg.source().equals(con.correspondant())) 
 				{ //Sender already has a started TCP connection
 					flag = true;
 					TCPMessage reply = con.reply(msg);
 					if(reply != null)
 						send(_peer, reply, 0);
+					break;
 				}
 			}
 			

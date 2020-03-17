@@ -22,7 +22,7 @@ public class TCPConnection
 	private int duplicateAck = 0;
 	private int congestionSize;
 	private int closeCondition;
-	private threewayHandshakeStep ths = threewayHandshakeStep.First;
+	private threewayHandshakeStep ths = null;
 	private fourwayHandshakeStep fhs = null;
 	private NetworkAddr correspondant;
 	private NetworkAddr self;
@@ -42,6 +42,7 @@ public class TCPConnection
 		ack = 0;
 		congestionSize = 1;
 		this.closeCondition = closeCondition;
+		ths = threewayHandshakeStep.First;
 		messages = new HashMap<Integer, TCPMessage>();
 	} 
 	
@@ -275,4 +276,8 @@ public class TCPConnection
 		return stage;
 	}
 	
+	public String getths() 
+	{
+		return ths.toString();
+	}
 }
