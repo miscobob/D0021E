@@ -109,13 +109,16 @@ public class Node extends SimEnt {
 			for (TCPConnection con : connections) {
 				reno(con);
 				
-				TCPMessage reply = con.nextMessage();
-				if(reply != null)
+				
+				con.setCongestionSize(con.getIncrementStage() == TCPConnection.incrementStage.Constant ? con.getCongestionSize() + 1 : con.getCongestionSize() * 2);
+				for(float i = 0; i<con.getCongestionSize(); i++) 
 				{
-					con.setCongestionSize(con.getIncrementStage() == TCPConnection.incrementStage.Constant ? con.getCongestionSize() + 1 : con.getCongestionSize() * 2);
-					for(float i = 0; i<con.getCongestionSize(); i++) 
-						send(_peer, reply, i*((float)1/(float)con.getCongestionSize()));
+					TCPMessage reply = con.nextMessage();
+					if(reply == null)
+						break;
+					send(_peer, reply, i*((float)1/(float)con.getCongestionSize()));
 				}
+					
 				
 				//onTimerEvent();
 			}

@@ -42,6 +42,7 @@ public class TCPConnection
 		ack = 0;
 		congestionSize = 1;
 		this.closeCondition = closeCondition;
+		messages = new HashMap<Integer, TCPMessage>();
 	} 
 	
 	public TCPMessage openingConnectionMessage() 
@@ -53,7 +54,7 @@ public class TCPConnection
 	{
 		TCPMessage msg = new TCPMessage(self, correspondant, sequence, ack, null);
 		sequence++;
-		return closeCondition != noCloseCodition ? msg : null;
+		return closeCondition != noCloseCodition && ths == threewayHandshakeStep.Complete && fhs == null ? msg : null;
 	}
 	
 	public TCPMessage reply(TCPMessage message) 
