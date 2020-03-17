@@ -1,5 +1,12 @@
 package Sim;
 
+import Sim.Events.Advertisement;
+import Sim.Events.BindingRequest;
+import Sim.Events.Disconnect;
+import Sim.Events.Message;
+import Sim.Events.Migrate;
+import Sim.Events.Solicit;
+import Sim.Events.UniqueAddr;
 
 // This class implements a simple router
 

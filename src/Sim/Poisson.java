@@ -1,6 +1,9 @@
 package Sim;
 
 import java.util.Random;
+
+import Sim.Events.Message;
+
 import java.lang.Math;
 
 public class Poisson extends Node {

@@ -2,6 +2,8 @@ package Sim;
 
 import java.util.ArrayList;
 import java.util.Random;
+
+import Sim.Events.Message;
 /**
  * A class intended to show the effects of a bad link in a network
  * @author Michael

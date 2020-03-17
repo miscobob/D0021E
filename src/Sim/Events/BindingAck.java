@@ -1,4 +1,6 @@
-package Sim;
+package Sim.Events;
+
+import Sim.NetworkAddr;
 
 public class BindingAck extends Message{
 	

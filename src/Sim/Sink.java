@@ -1,5 +1,7 @@
 package Sim;
 
+import Sim.Events.Message;
+
 // This class implements a node (host) it has an address, a peer that it communicates with
 // and it count messages send and received.
 

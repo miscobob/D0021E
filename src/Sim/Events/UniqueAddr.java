@@ -1,4 +1,8 @@
-package Sim;
+package Sim.Events;
+
+import Sim.Event;
+import Sim.NetworkAddr;
+import Sim.SimEnt;
 
 public class UniqueAddr implements Event {
 

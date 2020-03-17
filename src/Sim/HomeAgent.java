@@ -2,6 +2,11 @@ package Sim;
 
 import java.util.HashMap;
 
+import Sim.Events.BindingAck;
+import Sim.Events.BindingRequest;
+import Sim.Events.ForwardMessage;
+import Sim.Events.Message;
+
 public class HomeAgent extends SimEnt{
 	
 	private HashMap<NetworkAddr, NetworkAddr> remoteNodes; //Remote address as value with key as localAddress

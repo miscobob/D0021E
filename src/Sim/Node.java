@@ -1,5 +1,18 @@
 package Sim;
 import java.util.ArrayList;
+
+import Sim.Events.Advertisement;
+import Sim.Events.BindingAck;
+import Sim.Events.BindingRequest;
+import Sim.Events.Disconnect;
+import Sim.Events.ForwardMessage;
+import Sim.Events.Message;
+import Sim.Events.Migrate;
+import Sim.Events.ProvideNewAddr;
+import Sim.Events.Solicit;
+import Sim.Events.TCPMessage;
+import Sim.Events.UniqueAddr;
+
 import java.lang.Math;
 
 
@@ -209,7 +222,11 @@ public class Node extends SimEnt {
 		}
 	}
 
-
+	public void sendTCP(TCPMessage msg, double time) 
+	{
+		send(_peer, msg, time);
+	}
+	
 	private void reno(TCPConnection con) {
 		if (con.getDuplicateAcks() >= 3) {
 			con.setCongestionSize((int)Math.ceil(con.getCongestionSize()/2.0));

@@ -1,8 +1,10 @@
-package Sim;
+package Sim.Events;
+
+import Sim.NetworkAddr;
 
 public class Advertisement extends Message {
 
-	Advertisement(NetworkAddr from, NetworkAddr to, int seq) {
+	public Advertisement(NetworkAddr from, NetworkAddr to, int seq) {
 		super(from, to, seq);
 		// TODO Auto-generated constructor stub
 	}

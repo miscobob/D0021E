@@ -1,5 +1,7 @@
 package Sim;
 
+import Sim.Events.Message;
+
 // This class implements a simple switch
 
 public class Switch extends SimEnt{

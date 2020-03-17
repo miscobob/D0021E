@@ -1,5 +1,7 @@
 package Sim;
 
+import Sim.Events.TCPMessage;
+
 public class TCPLink extends Link{
 	int msgPerSecond;
 	boolean canSendMessage;

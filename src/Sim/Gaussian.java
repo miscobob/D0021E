@@ -2,6 +2,8 @@ package Sim;
 
 import java.util.Random;
 
+import Sim.Events.Message;
+
 public class Gaussian extends Node {
 
 	private NetworkAddr _id;

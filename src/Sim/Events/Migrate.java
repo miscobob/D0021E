@@ -1,4 +1,9 @@
-package Sim;
+package Sim.Events;
+
+import Sim.Event;
+import Sim.Link;
+import Sim.NetworkAddr;
+import Sim.SimEnt;
 
 // This class implements an event that send a Message, currently the only
 // fields in the message are who the sender is, the destination and a sequence 

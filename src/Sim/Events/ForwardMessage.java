@@ -1,4 +1,7 @@
-package Sim;
+package Sim.Events;
+
+import Sim.NetworkAddr;
+
 /**
  * A special type of Message sent from homeagent to intented receiver on other Network 
  * @author Michael MobilaDator

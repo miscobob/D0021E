@@ -1,4 +1,8 @@
-package Sim;
+package Sim.Events;
+
+import Sim.Event;
+import Sim.NetworkAddr;
+import Sim.SimEnt;
 
 // This class implements an event that send a Message, currently the only
 // fields in the message are who the sender is, the destination and a sequence 
@@ -9,7 +13,7 @@ public class Message implements Event{
 	private NetworkAddr _destination;
 	private int _seq=0;
 	
-	Message (NetworkAddr from, NetworkAddr to, int seq)
+	public Message (NetworkAddr from, NetworkAddr to, int seq)
 	{
 		_source = from;
 		_destination = to;
