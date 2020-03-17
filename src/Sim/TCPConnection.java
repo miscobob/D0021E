@@ -47,6 +47,7 @@ public class TCPConnection
 	
 	public TCPMessage openingConnectionMessage() 
 	{
+		ths = threewayHandshakeStep.Second;
 		return new TCPMessage(self, correspondant, sequence, ack, TCPType.SYN);
 	}
 	
@@ -59,7 +60,6 @@ public class TCPConnection
 	
 	public TCPMessage reply(TCPMessage message) 
 	{
-		
 		if(message.seq() == ack) 
 		{
 			messages.remove(ack);
@@ -68,13 +68,14 @@ public class TCPConnection
 		else if(message.seq() < ack) 
 		{
 			return null;
-		}
+		}/*
 		else 
 		{
 			if(message.seq() > ack)
 				messages.remove(message.seq());
+			
 			return messages.get(ack);
-		}
+		}*/
 		
 		if(sequence < message.ack())
 		{

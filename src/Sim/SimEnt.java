@@ -20,7 +20,8 @@ public abstract class SimEnt {
 	@Override
 	public String toString()
 	{
-		return this.getClass().getSimpleName() + " " + this._id.toString();
+		
+		return this._id != null ? this.getClass().getSimpleName() + " " + this._id.toString() : this.getClass().getSimpleName();
 	}
 	
 	// Called when erasing an entity like node or link etc. The SimEngine is called in case

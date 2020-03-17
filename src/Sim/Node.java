@@ -26,7 +26,8 @@ public class Node extends SimEnt {
 	
 	public void startTCPConnection(NetworkAddr to)
 	{
-		send(_peer, new TCPMessage(this._id, to, 5, 10, TCPType.SYN), 0);
+		TCPConnection con = new TCPConnection(to, this.getAddr(), _sentmsg);
+		send(_peer, con.openingConnectionMessage(), 0);
 	}
 	
 	
@@ -143,7 +144,9 @@ public class Node extends SimEnt {
 			{
 				//Sender has not established a connection yet
 				TCPConnection con = new TCPConnection(msg.source(), this._id, TCPConnection.noCloseCodition);
-				send(_peer, con.reply(msg), 0);
+				TCPMessage reply = con.reply(msg);
+				if(reply != null)
+					send(_peer, reply, 0);
 				connections.add(con);
 			}
 		}
