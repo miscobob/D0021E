@@ -24,6 +24,11 @@ public class Node extends SimEnt {
 		//_id = new NetworkAddr(network, node);
 	}	
 	
+	public void startTCPConnection(NetworkAddr to)
+	{
+		send(_peer, new TCPMessage(this._id, to, 5, 10, TCPType.SYN), 0);
+	}
+	
 	
 	// Sets the peer to communicate with. This node is single homed
 	

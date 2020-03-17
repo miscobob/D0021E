@@ -87,11 +87,15 @@ public class TCPConnection
 		TCPType reply = null;
 		if(ths != threewayHandshakeStep.Complete)
 		{
+			System.out.println(this.self.toString() + " Handling opening three-way handshake with " + message.source().toString());
 			reply = OpeningConnectionStep(message.type());
+			System.out.println(this.self.toString() + " Currently at step " + this.ths.toString());
 		}
 		else if(fhs != null) 
 		{
+			System.out.println(this.self.toString() + " Handling closing four-way handshake with " + message.source().toString());
 			reply = closingConnectionStep(message.type());
+			System.out.println(this.self.toString() + " Currently at step " + this.fhs.toString());
 		}
 		else
 			switch(message.type()) 
