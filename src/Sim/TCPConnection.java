@@ -3,9 +3,10 @@ package Sim;
 import Sim.Events.TCPMessage;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 
-public class TCPConnection {
+public class TCPConnection extends SimEnt{
 	public enum Config
 	{
 		Sender, Receiver
@@ -22,20 +23,22 @@ public class TCPConnection {
 	private ConnectionStage stage;
 	private int seq;
 	private int lastAck;
-	private int nextWantedSeq;
-	private ArrayList<Integer> ackMsgs;
+	private int nextWantedSeq = -1;
 	private int duplicateAcks;
-	private int rtt;
-	private float congestionSize;
-	private float threshold;
+	private int dataToFetch;
+	private double ttl = 10;
+	private double rtt;
+	private double srtt;
+	private double congestionSize;
+	private double threshold;
 	private TCPType waitingOn;
 	private IncrementStage incStage;
 	private HashMap<Integer, TCPMessage>waitingOnAck;/// seq, TCPMessage
 	private TCPQueue toSend;
-	private NetworkAddr self;
+	private Node self;
 	private NetworkAddr correspondant;
 	
-	public TCPConnection(Config config, NetworkAddr self, NetworkAddr correspondant) 
+	public TCPConnection(Config config, Node self, NetworkAddr correspondant) 
 	{
 		seq = 0;
 		waitingOnAck = new HashMap<Integer,TCPMessage>();
@@ -43,144 +46,290 @@ public class TCPConnection {
 		toSend = new TCPQueue();
 		this.self = self;
 		this.correspondant = correspondant;
+		congestionSize = 1;
 		incStage = IncrementStage.Exponential;
 		stage = ConnectionStage.Opening;
-		waitingOn = TCPType.SYN;
-		ackMsgs = new ArrayList<Integer>();
+		if(config == Config.Sender)
+			waitingOn = TCPType.SYN;
+		else
+			waitingOn = TCPType.SYNACK;
 	}
 	
-	public TCPMessage getFirstMessage() 
+	public void startConversation() 
 	{
-		TCPMessage msg = new TCPMessage(self, correspondant, seq, -1,TCPType.SYN, 0);
+		TCPMessage msg = new TCPMessage(self.getAddr(), correspondant, seq, -1,TCPType.SYN, 0);
 		waitingOn = TCPType.SYNACK;
 		seq++;
-		return msg;
+		toSend.addToHead(msg);
+		send(this,new TimerEvent(), 0);
 	}
 	
-	public TCPMessage getNextMessage() 
+	private TCPMessage getNextMessage() 
 	{
-		if(toSend.isEmpty()) 
+		for(TCPMessage msg : waitingOnAck.values()) 
+		{
+			if(SimEngine.getTime()>msg.getTimeout()) 
+			{
+				timeout();
+				return msg;
+			}
+		}
+		if(!toSend.isEmpty()) 
 		{
 			TCPMessage msg = toSend.getHead();
-			if(msg.type() == TCPType.FIN || msg.type() == TCPType.FINACK || msg.type() == TCPType.SYNACK) 
+			if(msg.type() == TCPType.SYN) 
+				waitingOn = TCPType.SYNACK;
+			
+			else if(msg.type() == TCPType.FIN) 
+			{
+				stage = ConnectionStage.HalfClosed;
+				waitingOn = TCPType.FINACK;
+			}
+			else if(msg.type() == TCPType.FINACK || msg.type() == TCPType.SYNACK) 
 			{
 				if(stage == ConnectionStage.Open)
 					stage = ConnectionStage.HalfClosed;
 				waitingOn = TCPType.ACK;
 			}
+			else if(stage == ConnectionStage.HalfClosed && msg.type() == TCPType.ACK) 
+			{
+				stage = ConnectionStage.Closed;
+			}
+				
 			return msg;
 		}return null;
 	}
 	
-	
-	public void handleMsg(TCPMessage msg) 
+	public void setDataToFetch(int dataToFetch) 
 	{
+		this.dataToFetch = dataToFetch;
+	}
+	
+	public void handleMessage(TCPMessage msg) 
+	{
+		System.out.println(self + " handling tcp message " + msg.type() + " from " + correspondant);
 		if(waitingOn == null) 
 		{
 			if(config == Config.Sender) 
 			{
-				if(msg.data() > 0 && msg.type() == TCPType.ACK) 
-				{
-					int segments = msg.data();
-					for(int segment = 1; segment <= segments; segment++) 
-					{
-						TCPMessage reply = new TCPMessage(self, correspondant, seq, msg.seq()+1, TCPType.ACK, 0);
-						seq++;
-						reply.setSegment(segment);
-						reply.setSegments(segments);
-						toSend.addToTail(reply);
-					}
-				}
-				else if(msg.type() == TCPType.ACK) 
-				{
-					if(msg.ack() == lastAck)
-						duplicateAcks++;
-					else 
-					{
-						lastAck = msg.ack();
-						waitingOnAck.remove(msg.ack());
-						duplicateAcks = 1;
-					}
-				}
-				else if(msg.type() == TCPType.FIN) 
-				{
-					TCPMessage reply = new TCPMessage(self, correspondant, seq, msg.seq()+1, TCPType.FINACK, 0);
-					seq++;
-				}
+				messageHandlerSender(msg);
 			}
 			else if(config == Config.Receiver)
 			{
-				if(msg.type() == TCPType.ACK) {
-					 if(msg.segments() != 0 && msg.segments() >= msg.segment()) 
-					{
-						
-						nextWantedSeq = msg.seq() == nextWantedSeq || m
-						TCPMessage reply;
-					}
-					else 
-					{	
-						if(msg.ack() == lastAck)
-							duplicateAcks++;
-						else 
-						{
-							lastAck = msg.ack();
-							waitingOnAck.remove(msg.ack());
-							duplicateAcks = 1;
-						}
-					}
-				}
-				else if(msg.type() == TCPType.FIN) 
-				{
-					TCPMessage reply = new TCPMessage(self, correspondant, seq, msg.seq()+1, TCPType.FINACK, 0);
-					seq++;
-				}
-				
+				messageHandlerReceiver(msg);
 			}
 		}
-		else 
+		else if(waitingOn == msg.type())
 		{
 			TCPMessage reply;
 			switch(waitingOn) 
 			{
 			case SYN:
-				reply = new TCPMessage(self, correspondant, seq, msg.seq()+1, TCPType.SYNACK, 0);
+				reply = new TCPMessage(self.getAddr(), correspondant, seq, msg.seq()+1, TCPType.SYNACK, 0);
+				toSend.addToHead(reply);
 				seq++;
 				waitingOn = TCPType.ACK;
+				send(this,new TimerEvent(), 0);
 				break;
 			case SYNACK:
-				reply = new TCPMessage(self, correspondant, seq, msg.seq()+1, TCPType.ACK, 0);
+				reply = new TCPMessage(self.getAddr(), correspondant, seq, msg.seq()+1, TCPType.ACK, 0);
+				waitingOnAck.remove(msg.ack());
+				toSend.addToHead(reply);
+				stage = ConnectionStage.Open;
 				seq++;
 				waitingOn = null;
 				break;
 			case ACK:
+				waitingOnAck.remove(msg.ack());
+				if(stage == ConnectionStage.Opening) 
+					stage = ConnectionStage.Open;
+				else if(stage == ConnectionStage.HalfClosed)
+					stage = ConnectionStage.Closed;
 				waitingOn = null;
 				break;
 			case FINACK:
-				reply = new TCPMessage(self, correspondant, seq, msg.seq()+1, TCPType.ACK, 0);
+				reply = new TCPMessage(self.getAddr(), correspondant, seq, msg.seq()+1, TCPType.ACK, 0);
+				toSend.addToHead(reply);
 				seq++;
 				waitingOn = null;
+				break;
+			default:
+				System.out.println("Something went wrong in " + self + " communcatining with " + correspondant );
 				
+			}
+			if(stage == ConnectionStage.Open && dataToFetch > 0) 
+			{
+				toSend.addToTail(new TCPMessage(self.getAddr(), correspondant, seq, msg.seq()+1, TCPType.ACK, dataToFetch));
+				seq++;
 			}
 			
 		}
 	}
-	
-	/*
-	private void reno(TCPConnection con) {
-		if (con.getDuplicateAcks() >= 3) {
-			con.setCongestionSize((int)Math.ceil(con.getCongestionSize()/2.0));
-			con.setIncrementStage(TCPConnection.incrementStage.Constant);
-			if (con.getCongestionSize() < 2) {
-				con.setCongestionSize(2);
+
+	private void messageHandlerReceiver(TCPMessage msg) {
+		if(msg.type() == TCPType.ACK) {
+			 if(msg.segments() != 0 && msg.segments() >= msg.segment()) 
+			{
+				if(nextWantedSeq == -1)
+					nextWantedSeq = msg.seq()-msg.segment()+1;
+				nextWantedSeq = msg.seq() == nextWantedSeq ? nextWantedSeq+1 : nextWantedSeq;
+				TCPMessage reply = new TCPMessage(self.getAddr(), correspondant, seq, nextWantedSeq, TCPType.ACK, 0);
+				seq++;
+				toSend.addToTail(reply);
+				if(msg.segment() == msg.segments() && msg.seq() + 1 == nextWantedSeq)
+				{
+					TCPMessage fin = new TCPMessage(self.getAddr(), correspondant, seq, nextWantedSeq, TCPType.FIN, 0);
+					seq++;
+					toSend.addToTail(fin);
+				}
+			}
+			else 
+			{	
+				if(msg.ack() == lastAck) 
+				{
+					duplicateAcks++;
+				}
+				else 
+				{
+					lastAck = msg.ack();
+					waitingOnAck.remove(msg.ack());
+					duplicateAcks = 1;
+				}
 			}
 		}
-		else if (con.timedOut()) {
-			con.setCongestionSize(1);
-			con.setIncrementStage(TCPConnection.incrementStage.Exponential);
-		}
-		else if (con.getCongestionSize() >= con.getThreshold()) {
-			con.setIncrementStage(TCPConnection.incrementStage.Constant);
+		else if(msg.type() == TCPType.FIN) 
+		{
+			TCPMessage reply = new TCPMessage(self.getAddr(), correspondant, seq, msg.seq()+1, TCPType.FINACK, 0);
+			seq++;
+			toSend.addToTail(reply);
 		}
 	}
-*/
+
+	private void messageHandlerSender(TCPMessage msg) {
+		if(msg.data() > 0 && msg.type() == TCPType.ACK) 
+		{
+			int segments = msg.data();
+			for(int segment = 1; segment <= segments; segment++) 
+			{
+				TCPMessage reply = new TCPMessage(self.getAddr(), correspondant, seq, msg.seq()+1, TCPType.ACK, 0);
+				reply.setSegment(segment);
+				reply.setSegments(segments);
+				toSend.addToTail(reply);
+				seq++;
+			}
+		}
+		else if(msg.type() == TCPType.ACK) 
+		{
+			if(msg.ack() == lastAck) 
+			{
+				duplicateAcks++;
+				if (duplicateAcks>3) {
+					threeDupAck();
+					duplicateAcks = 0;
+					toSend.addToHead(waitingOnAck.get(msg.ack()+1));
+				}
+			}
+			else 
+			{
+				lastAck = msg.ack();
+				waitingOnAck.remove(msg.ack());
+				duplicateAcks = 1;
+			}
+		}
+		else if(msg.type() == TCPType.FIN) 
+		{
+			TCPMessage reply = new TCPMessage(self.getAddr(), correspondant, seq, msg.seq()+1, TCPType.FINACK, 0);
+			seq++;
+			toSend.addToTail(reply);
+		}
+	}
+	
+	public NetworkAddr correspondant() 
+	{
+		return correspondant;
+	}
+	
+	public double getRTT() 
+	{
+		return rtt;
+	}
+	
+	public void setRTT(double rtt) 
+	{
+		this.rtt = rtt;
+		if(srtt == -1)
+			srtt = rtt;
+	}
+	
+	public double calculateSRTT()
+	{
+		double alpha = 0.8; //between 0.8 and 0.9
+		
+		double value = (alpha * srtt) + ((1 - alpha) * rtt);
+		
+		srtt = value;
+				
+		return value;
+	}
+	
+	public double getRTO()
+	{
+		double beta = 1.3; //between 1.3 and 2.0
+		return Math.min(64, Math.max(1, (beta * srtt)));
+	}
+	
+	public void threeDupAck() 
+	{
+		congestionSize = (int)Math.ceil(congestionSize/2.0);
+		incStage = TCPConnection.IncrementStage.Constant;
+		if (congestionSize < 2) {
+			congestionSize = (2);
+		}
+	}
+	
+	public void timeout() 
+	{
+		congestionSize = 1;
+		incStage = TCPConnection.IncrementStage.Exponential;
+	}
+	
+	public void reachedThreshold() 
+	{
+		incStage = TCPConnection.IncrementStage.Constant;
+	}
+
+	private void updatingSendingRate() 
+	{
+		if(incStage == IncrementStage.Constant)
+			congestionSize++;
+		else {
+			congestionSize = congestionSize * 2;
+			if(congestionSize >= threshold)
+				reachedThreshold();
+		}
+	}
+	
+	@Override
+	public void recv(SimEnt source, Event event) {
+		if(event instanceof TimerEvent) 
+		{
+			if(stage != ConnectionStage.Closed) 
+			{
+				TCPMessage msg = getNextMessage();
+				if(msg != null)
+				{
+					System.out.println(self + " sends tcp message " + msg.type() +" to "+ correspondant);
+					if((config == Config.Sender && stage == ConnectionStage.Open && msg.type() == TCPType.ACK)|| waitingOn != null)
+						waitingOnAck.put(msg.seq()+1, msg);
+					msg.setTTL(ttl, SimEngine.getTime());
+					self.sendTCP(msg, 1/congestionSize);
+					updatingSendingRate();
+				}
+				send(this, new TimerEvent(), 1/congestionSize);
+			}
+		}
+		
+	}
+	
+	
 }

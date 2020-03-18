@@ -1,6 +1,7 @@
 package Sim;
 import java.util.ArrayList;
 
+import Sim.TCPConnection.Config;
 import Sim.Events.Advertisement;
 import Sim.Events.BindingAck;
 import Sim.Events.BindingRequest;
@@ -26,13 +27,14 @@ public class Node extends SimEnt {
 	private int _seq = 0;
 	private NetworkAddr oldAddress;
 	private boolean setup = true;
-	
+	private ArrayList<TCPConnection> connections;
 
 	
 	public Node (int network, int node)
 	{
 		super();
 		setNetworkAddr(network, node);
+		connections = new ArrayList<TCPConnection>();
 		//_id = new NetworkAddr(network, node);
 	}	
 	/*
@@ -105,6 +107,14 @@ public class Node extends SimEnt {
 		send(_peer, new Solicit(this._id, 0), 0);
 	}
 	
+	public void setTCP(NetworkAddr correspondant, int dataToFetch) 
+	{
+		TCPConnection con = new TCPConnection(Config.Receiver, this, correspondant);
+		con.setDataToFetch(dataToFetch);
+		con.startConversation();
+		connections.add(con);
+	}
+	
 //**********************************************************************************	
 	
 	// This method is called upon that an event destined for this node triggers.
@@ -118,7 +128,22 @@ public class Node extends SimEnt {
 		else if(ev instanceof TCPMessage)
 		{
 			TCPMessage msg = (TCPMessage)ev;
-			
+			boolean flag = false;
+			for(TCPConnection con : connections) 
+			{
+				if(con.correspondant().equals(msg.source())) 
+				{
+					flag = true;
+					con.handleMessage(msg);
+					break;
+				}
+			}
+			if(!flag) 
+			{
+				TCPConnection con = new TCPConnection(Config.Sender, this, msg.source());
+				connections.add(con);
+				con.handleMessage(msg);
+			}
 		}
 		
 		else if(ev instanceof ProvideNewAddr) 

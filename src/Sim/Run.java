@@ -1,11 +1,14 @@
 package Sim;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+
 public class Run {
 	public static void main (String [] args)
 	{
- 		Link link1 = new Link();
- 		Link link2 = new Link();
- 		Link link3 = new Link();
+ 		TCPLink link1 = new TCPLink(2);
+ 		TCPLink link2 = new TCPLink(2);
+ 		TCPLink link3 = new TCPLink(2);
 		
 		Node host1 = new Node(0,1);
 		Node host2 = new Node(1,1);
@@ -33,7 +36,9 @@ public class Run {
 		//host1.StartSending(1, 1, 10, 1, 10);
 		//host1.changeRouterAfter(5, routeNode2);
 		//host2.sendSolicitationRequest();
-		host1.send(host1, new TimerEvent(), 1);
+		//host1.send(host1, new TimerEvent(), 1);
+		
+		host1.setTCP(host2.getAddr(), 100);
 		
 		Thread t=new Thread(SimEngine.instance());
 	

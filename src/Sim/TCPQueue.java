@@ -22,12 +22,14 @@ public class TCPQueue{
 		{
 			first = new QueueElement(msg);
 		}
-		QueueElement e = first;
-		while(e.next != null) 
-		{
-			e = e.next;
+		else {
+			QueueElement e = first;
+			while(e.next != null) 
+			{
+				e = e.next;
+			}
+			e.next = new QueueElement(msg);
 		}
-		e.next = new QueueElement(msg);
 		
 	}
 	public void addToHead(TCPMessage msg)
