@@ -203,7 +203,7 @@ public class Router extends SimEnt{
 				send(_HA, br, 0);
 			}
 			else{
-				System.out.println("Router " + this.getAddr().networkId() + "." + this.getAddr().nodeId() +  " handles packet with seq: " + ((Message) event).seq()+" from node: "+((Message) event).source().networkId()+"." + ((Message) event).source().nodeId() );
+				System.out.println("Router " + this.getAddr().networkId() + "." + this.getAddr().nodeId() +  " handles packet with seq: " + ((Message) event).seq()+" from node: "+((Message) event).source().networkId()+"." + ((Message) event).source().nodeId() + " at time: "+SimEngine.getTime() );
 				SimEnt sendNext = getInterface(br.destination());
 				System.out.println("Router sends to node: " + ((Message) event).destination().networkId()+"." + ((Message) event).destination().nodeId());	
 				send (sendNext, event, _now);
@@ -212,7 +212,7 @@ public class Router extends SimEnt{
 		}
 		else if (event instanceof Message)
 		{
-			System.out.println("Router " + this.getAddr().networkId() + "." + this.getAddr().nodeId() +  " handles packet with seq: " + ((Message) event).seq()+" from node: "+((Message) event).source().networkId()+"." + ((Message) event).source().nodeId() );
+			System.out.println("Router " + this.getAddr().networkId() + "." + this.getAddr().nodeId() +  " handles packet with seq: " + ((Message) event).seq()+" from node: "+((Message) event).source().networkId()+"." + ((Message) event).source().nodeId() + " at time: "+SimEngine.getTime());
 			SimEnt sendNext = getInterface(((Message)  event).destination());
 			System.out.println("Router sends to node: " + ((Message) event).destination().networkId()+"." + ((Message) event).destination().nodeId());		
 			send (sendNext, event, _now);

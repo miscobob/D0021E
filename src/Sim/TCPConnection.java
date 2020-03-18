@@ -32,6 +32,8 @@ public class TCPConnection
 	private incrementStage stage = incrementStage.Exponential;
 	private HashMap<Integer,TCPMessage>messages;
 	public final static int noCloseCodition = -1;
+	public int sent = 0;
+	public int recv = 0;
 	
 	
 	public TCPConnection(NetworkAddr correspondant, NetworkAddr self, int closeCondition) 
@@ -49,19 +51,25 @@ public class TCPConnection
 	public TCPMessage openingConnectionMessage() 
 	{
 		ths = threewayHandshakeStep.Second;
+		sent++;
 		return new TCPMessage(self, correspondant, sequence, ack, TCPType.SYN);
 	}
 	
 	public TCPMessage nextMessage() 
 	{
-		ack++;
+		if(closeCondition != noCloseCodition && ths == threewayHandshakeStep.Complete && fhs == null)
+			ack++;
 		TCPMessage msg = new TCPMessage(self, correspondant, sequence, ack, null);
-		sequence++;
+		if(closeCondition != noCloseCodition && ths == threewayHandshakeStep.Complete && fhs == null) {
+			sent++;
+			sequence++;
+		}
 		return closeCondition != noCloseCodition && ths == threewayHandshakeStep.Complete && fhs == null ? msg : null;
 	}
 	
 	public TCPMessage reply(TCPMessage message) 
 	{
+		recv++;
 		if(message.seq() == ack) 
 		{
 			messages.remove(ack);
@@ -70,14 +78,7 @@ public class TCPConnection
 		else if(message.seq() < ack) 
 		{
 			return null;
-		}/*
-		else 
-		{
-			if(message.seq() > ack)
-				messages.remove(message.seq());
-			
-			return messages.get(ack);
-		}*/
+		}
 		
 		if(sequence < message.ack())
 		{
@@ -102,6 +103,8 @@ public class TCPConnection
 			System.out.println(this.self.toString() + " Handling closing four-way handshake with " + message.source().toString());
 			reply = closingConnectionStep(message.type());
 			System.out.println(this.self.toString() + " Currently at step " + this.fhs.toString());
+			if(reply == null)
+				return null;
 		}
 		else
 			if(message.type() != null)
@@ -109,8 +112,11 @@ public class TCPConnection
 				{
 				case ACK :
 					System.out.println("Received ACK when it was expected");
-					if(ack >= closeCondition)
+					if(ack >= closeCondition) 
+					{
 						reply = TCPType.FIN;
+						fhs = fourwayHandshakeStep.Second;
+					}
 					else
 						return null;
 					break;
@@ -136,6 +142,7 @@ public class TCPConnection
 				reply = TCPType.ACK;
 				System.out.println("Received TCPMessage to return data");
 			}
+		sent++;
 		TCPMessage msgToSend = new TCPMessage(self, correspondant, sequence, ack, reply);
 		messages.put(ack, msgToSend);
 		return msgToSend;
@@ -242,6 +249,11 @@ public class TCPConnection
 	public boolean connectionEstablished() 
 	{
 		return ths == threewayHandshakeStep.Complete && fhs == null;
+	}
+	
+	public boolean connectionClosed() 
+	{
+		return fhs == fourwayHandshakeStep.Complete;
 	}
 	
 	public int getDuplicateAcks() 

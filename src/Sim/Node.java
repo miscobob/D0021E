@@ -118,12 +118,12 @@ public class Node extends SimEnt {
 	// This method is called upon that an event destined for this node triggers.
 	public void recv(SimEnt src, Event ev)
 	{
+		//System.out.println(this + " got new packet");
 		if (ev instanceof TimerEvent)
 		{
 			for (TCPConnection con : connections) {
+					
 				reno(con);
-				System.out.println(con.getths());
-				
 				con.setCongestionSize(con.getIncrementStage() == TCPConnection.incrementStage.Constant ? con.getCongestionSize() + 1 : con.getCongestionSize() * 2);
 				for(float i = 0; i<con.getCongestionSize(); i++) 
 				{
@@ -136,7 +136,8 @@ public class Node extends SimEnt {
 				
 				//onTimerEvent();
 			}
-			send(this, new TimerEvent(), 1);
+			if(!connections.isEmpty())
+				send(this, new TimerEvent(), 1);
 		}
 		else if(ev instanceof TCPMessage)
 		{
@@ -149,8 +150,11 @@ public class Node extends SimEnt {
 				{ //Sender already has a started TCP connection
 					flag = true;
 					TCPMessage reply = con.reply(msg);
-					if(reply != null)
-						send(_peer, reply, 0);
+					if(reply != null) 
+					{
+						send(_peer, reply, 1);
+						System.out.println(con.sent + " " + con.recv + " "+ this);
+					}
 					break;
 				}
 			}
@@ -160,9 +164,14 @@ public class Node extends SimEnt {
 				//Sender has not established a connection yet
 				TCPConnection con = new TCPConnection(msg.source(), this._id, TCPConnection.noCloseCodition);
 				TCPMessage reply = con.reply(msg);
-				if(reply != null)
-					send(_peer, reply, 0);
-				connections.add(con);
+				if(reply != null) 
+				{
+					send(_peer, reply, 1);
+					connections.add(con);
+				}else 
+				{
+					System.out.println("Throwing away connection");
+				}
 			}
 		}
 		
