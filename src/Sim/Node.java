@@ -26,7 +26,6 @@ public class Node extends SimEnt {
 	private int _seq = 0;
 	private NetworkAddr oldAddress;
 	private boolean setup = true;
-	private ArrayList<TCPConnection> connections = new ArrayList<TCPConnection>();
 	
 
 	
@@ -106,13 +105,6 @@ public class Node extends SimEnt {
 		send(_peer, new Solicit(this._id, 0), 0);
 	}
 	
-	public void setupTCP(NetworkAddr addr, int closeCondition) 
-	{
-		TCPConnection con = new TCPConnection(addr,this.getAddr(), closeCondition);
-		send(_peer, con.openingConnectionMessage(), 0);
-		connections.add(con);
-	}
-	
 //**********************************************************************************	
 	
 	// This method is called upon that an event destined for this node triggers.
@@ -121,58 +113,12 @@ public class Node extends SimEnt {
 		//System.out.println(this + " got new packet");
 		if (ev instanceof TimerEvent)
 		{
-			for (TCPConnection con : connections) {
-					
-				reno(con);
-				con.setCongestionSize(con.getIncrementStage() == TCPConnection.incrementStage.Constant ? con.getCongestionSize() + 1 : con.getCongestionSize() * 2);
-				for(float i = 0; i<con.getCongestionSize(); i++) 
-				{
-					TCPMessage reply = con.nextMessage();
-					if(reply == null)
-						break;
-					send(_peer, reply, i*((float)1/(float)con.getCongestionSize()));
-				}
-					
-				
-				//onTimerEvent();
-			}
-			if(!connections.isEmpty())
-				send(this, new TimerEvent(), 1);
+			
 		}
 		else if(ev instanceof TCPMessage)
 		{
 			TCPMessage msg = (TCPMessage)ev;
 			
-			boolean flag = false;
-			for(TCPConnection con : connections)
-			{
-				if(msg.source().equals(con.correspondant())) 
-				{ //Sender already has a started TCP connection
-					flag = true;
-					TCPMessage reply = con.reply(msg);
-					if(reply != null) 
-					{
-						send(_peer, reply, 1);
-						System.out.println(con.sent + " " + con.recv + " "+ this);
-					}
-					break;
-				}
-			}
-			
-			if(flag == false) 
-			{
-				//Sender has not established a connection yet
-				TCPConnection con = new TCPConnection(msg.source(), this._id, TCPConnection.noCloseCodition);
-				TCPMessage reply = con.reply(msg);
-				if(reply != null) 
-				{
-					send(_peer, reply, 1);
-					connections.add(con);
-				}else 
-				{
-					System.out.println("Throwing away connection");
-				}
-			}
 		}
 		
 		else if(ev instanceof ProvideNewAddr) 
@@ -235,7 +181,7 @@ public class Node extends SimEnt {
 	{
 		send(_peer, msg, time);
 	}
-	
+	/*
 	private void reno(TCPConnection con) {
 		if (con.getDuplicateAcks() >= 3) {
 			con.setCongestionSize((int)Math.ceil(con.getCongestionSize()/2.0));
@@ -252,7 +198,7 @@ public class Node extends SimEnt {
 			con.setIncrementStage(TCPConnection.incrementStage.Constant);
 		}
 	}
-
+*/
 
 	private void onTimerEvent() {
 		if (setup && _stopSendingAfter > _sentmsg && ((_sentmsg != swapRouterAfter&&_sentmsg != swapInterfaceAfter)||_sentmsg == 0))

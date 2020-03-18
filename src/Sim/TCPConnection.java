@@ -1,303 +1,186 @@
 package Sim;
 
+import Sim.Events.TCPMessage;
+
+import java.util.ArrayList;
 import java.util.HashMap;
 
-public class TCPConnection
-{
-	public enum threewayHandshakeStep
+public class TCPConnection {
+	public enum Config
 	{
-		First, Second, Third, Complete
+		Sender, Receiver
 	}
-	public enum fourwayHandshakeStep
+	public enum IncrementStage
 	{
-		First, Second, Third, Complete
+		Constant, Exponential
 	}
-	public enum incrementStage 
+	public enum ConnectionStage
 	{
-		Exponential, Constant
+		Opening, Open, HalfClosed, Closed;
 	}
-	
-	private int sequence;
-	private int ack;
-	private int duplicateAck = 0;
-	private int congestionSize;
-	private int closeCondition;
-	private threewayHandshakeStep ths = null;
-	private fourwayHandshakeStep fhs = null;
-	private NetworkAddr correspondant;
+	private Config config;
+	private ConnectionStage stage;
+	private int seq;
+	private int lastAck;
+	private int nextWantedSeq;
+	private ArrayList<Integer> ackMsgs;
+	private int duplicateAcks;
+	private int rtt;
+	private float congestionSize;
+	private float threshold;
+	private TCPType waitingOn;
+	private IncrementStage incStage;
+	private HashMap<Integer, TCPMessage>waitingOnAck;/// seq, TCPMessage
+	private TCPQueue toSend;
 	private NetworkAddr self;
-	private double rtt;
-	private double srtt = -1;
-	private int threshold = 32;
-	private incrementStage stage = incrementStage.Exponential;
-	private HashMap<Integer,TCPMessage>messages;
-	public final static int noCloseCodition = -1;
-	public int sent = 0;
-	public int recv = 0;
+	private NetworkAddr correspondant;
 	
-	
-	public TCPConnection(NetworkAddr correspondant, NetworkAddr self, int closeCondition) 
+	public TCPConnection(Config config, NetworkAddr self, NetworkAddr correspondant) 
 	{
-		this.correspondant = correspondant;
+		seq = 0;
+		waitingOnAck = new HashMap<Integer,TCPMessage>();
+		this.config = config;
+		toSend = new TCPQueue();
 		this.self = self;
-		sequence = 0;
-		ack = 0;
-		congestionSize = 1;
-		this.closeCondition = closeCondition;
-		ths = threewayHandshakeStep.First;
-		messages = new HashMap<Integer, TCPMessage>();
-	} 
-	
-	public TCPMessage openingConnectionMessage() 
-	{
-		ths = threewayHandshakeStep.Second;
-		sent++;
-		return new TCPMessage(self, correspondant, sequence, ack, TCPType.SYN);
+		this.correspondant = correspondant;
+		incStage = IncrementStage.Exponential;
+		stage = ConnectionStage.Opening;
+		waitingOn = TCPType.SYN;
+		ackMsgs = new ArrayList<Integer>();
 	}
 	
-	public TCPMessage nextMessage() 
+	public TCPMessage getFirstMessage() 
 	{
-		if(closeCondition != noCloseCodition && ths == threewayHandshakeStep.Complete && fhs == null)
-			ack++;
-		TCPMessage msg = new TCPMessage(self, correspondant, sequence, ack, null);
-		if(closeCondition != noCloseCodition && ths == threewayHandshakeStep.Complete && fhs == null) {
-			sent++;
-			sequence++;
-		}
-		return closeCondition != noCloseCodition && ths == threewayHandshakeStep.Complete && fhs == null ? msg : null;
+		TCPMessage msg = new TCPMessage(self, correspondant, seq, -1,TCPType.SYN, 0);
+		waitingOn = TCPType.SYNACK;
+		seq++;
+		return msg;
 	}
 	
-	public TCPMessage reply(TCPMessage message) 
+	public TCPMessage getNextMessage() 
 	{
-		recv++;
-		if(message.seq() == ack) 
+		if(toSend.isEmpty()) 
 		{
-			messages.remove(ack);
-			ack++;
-		}
-		else if(message.seq() < ack) 
+			TCPMessage msg = toSend.getHead();
+			if(msg.type() == TCPType.FIN || msg.type() == TCPType.FINACK || msg.type() == TCPType.SYNACK) 
+			{
+				if(stage == ConnectionStage.Open)
+					stage = ConnectionStage.HalfClosed;
+				waitingOn = TCPType.ACK;
+			}
+			return msg;
+		}return null;
+	}
+	
+	
+	public void handleMsg(TCPMessage msg) 
+	{
+		if(waitingOn == null) 
 		{
-			return null;
-		}
-		
-		if(sequence < message.ack())
-		{
-			sequence = message.ack();
-			duplicateAck = 1;
-		}
-		else if(sequence == message.ack()) 
-		{
-			duplicateAck++;
-		}
-		TCPType reply = null;
-		if(ths != threewayHandshakeStep.Complete)
-		{
-			System.out.println(this.self.toString() + " Handling opening three-way handshake with " + message.source().toString());
-			reply = OpeningConnectionStep(message.type());
-			System.out.println(this.self.toString() + " Currently at step " + this.ths.toString());
-			if(reply == null)
-				return null;
-		}
-		else if(fhs != null) 
-		{
-			System.out.println(this.self.toString() + " Handling closing four-way handshake with " + message.source().toString());
-			reply = closingConnectionStep(message.type());
-			System.out.println(this.self.toString() + " Currently at step " + this.fhs.toString());
-			if(reply == null)
-				return null;
-		}
-		else
-			if(message.type() != null)
-			switch(message.type()) 
+			if(config == Config.Sender) 
+			{
+				if(msg.data() > 0 && msg.type() == TCPType.ACK) 
 				{
-				case ACK :
-					System.out.println("Received ACK when it was expected");
-					if(ack >= closeCondition) 
+					int segments = msg.data();
+					for(int segment = 1; segment <= segments; segment++) 
 					{
-						reply = TCPType.FIN;
-						fhs = fourwayHandshakeStep.Second;
+						TCPMessage reply = new TCPMessage(self, correspondant, seq, msg.seq()+1, TCPType.ACK, 0);
+						seq++;
+						reply.setSegment(segment);
+						reply.setSegments(segments);
+						toSend.addToTail(reply);
 					}
-					else
-						return null;
-					break;
-				case SYN :
-					System.out.println("Received SYN when it was not expected");
-					return null;
-				case FIN :
-					fhs = fourwayHandshakeStep.First;
-					reply = closingConnectionStep(message.type());
-					break;
-				case SYNACK :
-					System.out.println("Received SYNACK when it was not expected");
-					return null;
-				case FINACK :
-					System.out.println("Received FINACK when it was not expected");
-					return null;
-				default:
-					reply = TCPType.ACK;
-					System.out.println("Received TCPMessage to return data");
-					break;
+				}
+				else if(msg.type() == TCPType.ACK) 
+				{
+					if(msg.ack() == lastAck)
+						duplicateAcks++;
+					else 
+					{
+						lastAck = msg.ack();
+						waitingOnAck.remove(msg.ack());
+						duplicateAcks = 1;
+					}
+				}
+				else if(msg.type() == TCPType.FIN) 
+				{
+					TCPMessage reply = new TCPMessage(self, correspondant, seq, msg.seq()+1, TCPType.FINACK, 0);
+					seq++;
+				}
 			}
-			else {
-				reply = TCPType.ACK;
-				System.out.println("Received TCPMessage to return data");
-			}
-		sent++;
-		TCPMessage msgToSend = new TCPMessage(self, correspondant, sequence, ack, reply);
-		messages.put(ack, msgToSend);
-		return msgToSend;
-		
-	}
-	
-	private TCPType OpeningConnectionStep(TCPType type) 
-	{
-		TCPType reply = null;
-		switch(ths) 
-		{
-		case First:
-			if(type == TCPType.SYN) 
+			else if(config == Config.Receiver)
 			{
-				reply = TCPType.SYNACK;
-				ths = threewayHandshakeStep.Third;
-			}
-			break;
-		case Second:
-			if(type == TCPType.SYNACK) 
-			{
-				reply = TCPType.ACK;
-				ths = threewayHandshakeStep.Complete;
-			}
-			break;
-		case Third:
-			if(type == TCPType.ACK)
-				ths = threewayHandshakeStep.Complete;
-			
-			break;
-		default:
-			System.out.println("Failed in setting up the TCP to node " + correspondant);
-			
-		}	
-		return reply;
-	}
-	
-
-	private TCPType closingConnectionStep(TCPType type) //maybe?
-	{
-		TCPType reply = null;
-		switch(fhs) 
-		{
-		case First:
-			reply = TCPType.FINACK;
-			fhs = fourwayHandshakeStep.Third;
-			
-			break;
-		case Second:
-			if(type == TCPType.FINACK) 
-			{
-				reply = TCPType.ACK;
-				fhs = fourwayHandshakeStep.Complete;
-			}
-			break;
-		case Third:
-			if(type == TCPType.ACK)
-				fhs = fourwayHandshakeStep.Complete;
-			
-			break;
-		default:
-			if(type == TCPType.FIN)
-				fhs = fourwayHandshakeStep.Second;
-			break;
-			
-		}	
-		return reply;
-	}
-	
-	public double getRTT() 
-	{
-		return rtt;
-	}
-	
-	public void setRTT(double rtt) 
-	{
-		this.rtt = rtt;
-		if(srtt == -1)
-			srtt = rtt;
-	}
-	
-	public double calculateSRTT()
-	{
-		double alpha = 0.8; //between 0.8 and 0.9
-		
-		double value = (alpha * srtt) + ((1 - alpha) * rtt);
-		
-		srtt = value;
+				if(msg.type() == TCPType.ACK) {
+					 if(msg.segments() != 0 && msg.segments() >= msg.segment()) 
+					{
+						
+						nextWantedSeq = msg.seq() == nextWantedSeq || m
+						TCPMessage reply;
+					}
+					else 
+					{	
+						if(msg.ack() == lastAck)
+							duplicateAcks++;
+						else 
+						{
+							lastAck = msg.ack();
+							waitingOnAck.remove(msg.ack());
+							duplicateAcks = 1;
+						}
+					}
+				}
+				else if(msg.type() == TCPType.FIN) 
+				{
+					TCPMessage reply = new TCPMessage(self, correspondant, seq, msg.seq()+1, TCPType.FINACK, 0);
+					seq++;
+				}
 				
-		return value;
+			}
+		}
+		else 
+		{
+			TCPMessage reply;
+			switch(waitingOn) 
+			{
+			case SYN:
+				reply = new TCPMessage(self, correspondant, seq, msg.seq()+1, TCPType.SYNACK, 0);
+				seq++;
+				waitingOn = TCPType.ACK;
+				break;
+			case SYNACK:
+				reply = new TCPMessage(self, correspondant, seq, msg.seq()+1, TCPType.ACK, 0);
+				seq++;
+				waitingOn = null;
+				break;
+			case ACK:
+				waitingOn = null;
+				break;
+			case FINACK:
+				reply = new TCPMessage(self, correspondant, seq, msg.seq()+1, TCPType.ACK, 0);
+				seq++;
+				waitingOn = null;
+				
+			}
+			
+		}
 	}
 	
-	public double getRTO()
-	{
-		double beta = 1.3; //between 1.3 and 2.0
-		return Math.min(64, Math.max(1, (beta * srtt)));
+	/*
+	private void reno(TCPConnection con) {
+		if (con.getDuplicateAcks() >= 3) {
+			con.setCongestionSize((int)Math.ceil(con.getCongestionSize()/2.0));
+			con.setIncrementStage(TCPConnection.incrementStage.Constant);
+			if (con.getCongestionSize() < 2) {
+				con.setCongestionSize(2);
+			}
+		}
+		else if (con.timedOut()) {
+			con.setCongestionSize(1);
+			con.setIncrementStage(TCPConnection.incrementStage.Exponential);
+		}
+		else if (con.getCongestionSize() >= con.getThreshold()) {
+			con.setIncrementStage(TCPConnection.incrementStage.Constant);
+		}
 	}
-	
-	public boolean timedOut() //implement at some point idk fam
-	{
-		return false;
-	}
-	
-	public boolean connectionEstablished() 
-	{
-		return ths == threewayHandshakeStep.Complete && fhs == null;
-	}
-	
-	public boolean connectionClosed() 
-	{
-		return fhs == fourwayHandshakeStep.Complete;
-	}
-	
-	public int getDuplicateAcks() 
-	{
-		return duplicateAck;
-	}
-	
-	public int getCongestionSize() 
-	{
-		return congestionSize;
-	}
-	
-	public void setCongestionSize(int size) {
-		congestionSize = size;
-	}
-	
-	public int ack() 
-	{
-		return ack;
-	}
-	
-	public int seq() 
-	{
-		return sequence;
-	}
-	
-	public NetworkAddr correspondant() 
-	{
-		return correspondant;
-	}
-	
-	public int getThreshold() {
-		return threshold;
-	}
-	public void setIncrementStage(incrementStage _stage) {
-		stage = _stage;
-	}
-	
-	public incrementStage getIncrementStage() {
-		return stage;
-	}
-	
-	public String getths() 
-	{
-		return ths.toString();
-	}
+*/
 }
