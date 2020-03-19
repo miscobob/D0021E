@@ -31,7 +31,7 @@ public class TCPConnection extends SimEnt{
 	private double rtt;
 	private double srtt;
 	private double congestionSize;
-	private double threshold;
+	private double threshold = 4;
 	private TCPType waitingOn;
 	private IncrementStage incStage;
 	private HashMap<Integer, TCPMessage>waitingOnAck;/// seq, TCPMessage
@@ -221,6 +221,7 @@ public class TCPConnection extends SimEnt{
 				toSend.addToTail(reply);
 				seq++;
 			}
+			lastAck = msg.ack();
 		}
 		else if(msg.type() == TCPType.ACK) 
 		{
@@ -325,7 +326,7 @@ public class TCPConnection extends SimEnt{
 				if(msg != null)
 				{
 					System.out.println(self + " sends tcp message " + msg.type() +" to "+ correspondant);
-					if((config == Config.Sender && stage == ConnectionStage.Open && msg.type() == TCPType.ACK)|| waitingOn != null)
+					if((config == Config.Sender && stage == ConnectionStage.Open && msg.type() == TCPType.ACK)||msg.data()>0|| waitingOn != null)
 						waitingOnAck.put(msg.seq()+1, msg);
 					msg.setTTL(ttl, SimEngine.getTime());
 					self.sendTCP(msg, 1/congestionSize);
