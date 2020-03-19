@@ -2,6 +2,7 @@ package Sim;
 
 import Sim.Events.TCPMessage;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -104,9 +105,10 @@ public class TCPConnection extends SimEnt{
 	{
 		this.dataToFetch = dataToFetch;
 	}
-	
+	private int[]seg = new int[100];
 	public void handleMessage(TCPMessage msg) 
 	{
+		recv++;
 		System.out.println(self + " handling tcp message " + msg.type() + " from " + correspondant);
 		if(waitingOn == null) 
 		{
@@ -149,6 +151,7 @@ public class TCPConnection extends SimEnt{
 				break;
 			case FINACK:
 				reply = new TCPMessage(self.getAddr(), correspondant, seq, msg.seq()+1, TCPType.ACK, 0);
+				waitingOnAck.remove(msg.ack());
 				toSend.addToHead(reply);
 				seq++;
 				waitingOn = null;
@@ -170,18 +173,19 @@ public class TCPConnection extends SimEnt{
 		if(msg.type() == TCPType.ACK) {
 			 if(msg.segments() != 0 && msg.segments() >= msg.segment()) 
 			{
-				if(nextWantedSeq == -1)
+				 seg[msg.segment()-1] = 1;
+				 if(nextWantedSeq == -1)
 					nextWantedSeq = msg.seq()-msg.segment()+1;
-				nextWantedSeq = msg.seq() == nextWantedSeq ? nextWantedSeq+1 : nextWantedSeq;
-				TCPMessage reply = new TCPMessage(self.getAddr(), correspondant, seq, nextWantedSeq, TCPType.ACK, 0);
-				seq++;
-				toSend.addToTail(reply);
-				if(msg.segment() == msg.segments() && msg.seq() + 1 == nextWantedSeq)
-				{
-					TCPMessage fin = new TCPMessage(self.getAddr(), correspondant, seq, nextWantedSeq, TCPType.FIN, 0);
-					seq++;
-					toSend.addToTail(fin);
-				}
+				 nextWantedSeq = msg.seq() == nextWantedSeq ? nextWantedSeq+1 : nextWantedSeq;
+				 TCPMessage reply = new TCPMessage(self.getAddr(), correspondant, seq, nextWantedSeq, TCPType.ACK, 0);
+				 seq++;
+				 toSend.addToTail(reply);
+				 if(msg.segment() == msg.segments() && msg.seq() + 1 == nextWantedSeq)
+				 {
+					 TCPMessage fin = new TCPMessage(self.getAddr(), correspondant, seq, nextWantedSeq, TCPType.FIN, 0);
+					 seq++;
+					 toSend.addToTail(fin);
+				 }
 			}
 			else 
 			{	
@@ -308,6 +312,8 @@ public class TCPConnection extends SimEnt{
 				reachedThreshold();
 		}
 	}
+	private int sent = 0;
+	private int recv = 0;
 	
 	@Override
 	public void recv(SimEnt source, Event event) {
@@ -323,9 +329,20 @@ public class TCPConnection extends SimEnt{
 						waitingOnAck.put(msg.seq()+1, msg);
 					msg.setTTL(ttl, SimEngine.getTime());
 					self.sendTCP(msg, 1/congestionSize);
+					try {
+						Logger.LogTime(self.toString(), Double.toString(congestionSize));
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					sent++;
 					updatingSendingRate();
 				}
 				send(this, new TimerEvent(), 1/congestionSize);
+			}
+			else 
+			{
+				System.out.println("Communcation has ended sent "+ sent + " and received "+ recv );
 			}
 		}
 		

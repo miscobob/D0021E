@@ -11,7 +11,7 @@ public class Logger {
 	{
 		
 		//IOException: if the named file exists but is a directory rather than a regular file, does not exist but cannot be created, or cannot be opened for any other reason
-		BufferedWriter writer = new BufferedWriter(new FileWriter(fileToWrite, true));
+		BufferedWriter writer = new BufferedWriter(new FileWriter(fileToWrite+".txt", true));
 		writer.write(data + newLine);
 		writer.close();
 	}

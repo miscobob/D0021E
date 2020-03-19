@@ -18,6 +18,8 @@ public class TCPQueue{
 	
 	public void addToTail(TCPMessage msg) 
 	{
+		if(msg == null)
+			return;
 		if(first == null) 
 		{
 			first = new QueueElement(msg);
@@ -34,6 +36,8 @@ public class TCPQueue{
 	}
 	public void addToHead(TCPMessage msg)
 	{
+		if(msg == null)
+			return;
 		QueueElement e = new QueueElement(msg);
 		e.next = first;
 		first = e;

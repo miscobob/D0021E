@@ -6,7 +6,8 @@ public class TCPLink extends Link{
 	int msgPerSecond;
 	boolean canSendMessage;
 	static float one = 1;
-
+	static double transmitionTime = 0.1;
+	
 	public TCPLink(int msgPerSecond) {
 		super();
 		this.canSendMessage = true;
@@ -32,9 +33,8 @@ public class TCPLink extends Link{
 		if (src == _connectorA)
 		{
 			//System.out.println("Link recv msg, passes it through");
-			send(_connectorB, ev, _now);
+			send(_connectorB, ev, transmitionTime);
 			canSendMessage = false;
-			send(this, new TimerEvent(),one/this.msgPerSecond);
 		}
 		else if(_connectorA == _connectorB || _connectorA == null || _connectorB == null)
 		{
@@ -43,9 +43,9 @@ public class TCPLink extends Link{
 		else 
 		{
 			//System.out.println("Link recv msg, passes it through");
-			send(_connectorA, ev, _now);
+			send(_connectorA, ev, transmitionTime);
 			canSendMessage = false;
-			send(this, new TimerEvent(),one/this.msgPerSecond);
 		}
+		send(this, new TimerEvent(),one/this.msgPerSecond);
 	}
 }

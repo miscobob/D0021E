@@ -6,9 +6,10 @@ import java.util.Comparator;
 public class Run {
 	public static void main (String [] args)
 	{
- 		TCPLink link1 = new TCPLink(2);
- 		TCPLink link2 = new TCPLink(2);
- 		TCPLink link3 = new TCPLink(2);
+		int linkcap = 1000;
+ 		TCPLink link1 = new TCPLink(linkcap);
+ 		TCPLink link2 = new TCPLink(linkcap);
+ 		TCPLink link3 = new TCPLink(linkcap);
 		
 		Node host1 = new Node(0,1);
 		Node host2 = new Node(1,1);
