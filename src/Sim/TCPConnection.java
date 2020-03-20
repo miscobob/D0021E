@@ -427,6 +427,8 @@ public class TCPConnection extends SimEnt{
 				else
 					sending = false;
 				if(toSend.isEmpty() && waitingOnAck.isEmpty())
+					if(stage == ConnectionStage.Closed)
+						System.out.println(self + " communcation with "+ correspondant +" has ended sent "+ sent + " and received "+ recv );
 					return;
 			}
 			else 
