@@ -5,8 +5,9 @@ import Sim.Events.TCPMessage;
 public class TCPLink extends Link{
 	int msgPerSecond;
 	boolean canSendMessage;
+	int msgs = 0;
 	static float one = 1;
-	static double transmitionTime = 0.1;
+	static double transmitionTime = 0.02;
 	
 	public TCPLink(int msgPerSecond) {
 		super();
@@ -20,13 +21,15 @@ public class TCPLink extends Link{
 	{
 		if(ev instanceof TimerEvent)
 		{
-			canSendMessage = true;
+			msgs--;
+			if(msgs< msgPerSecond)
+				canSendMessage = true;
 			return;
 		}
 		
 		if(!canSendMessage)
 		{
-			System.out.println("Dropped packet with seq: " + ((TCPMessage)ev).seq() + " because of not enough bandwidth");
+			System.out.println("Dropped packet with seq: " + ((TCPMessage)ev).seq() +" from " + src +   " because of not enough bandwidth");
 			return;
 		}
 		
@@ -34,7 +37,6 @@ public class TCPLink extends Link{
 		{
 			//System.out.println("Link recv msg, passes it through");
 			send(_connectorB, ev, transmitionTime);
-			canSendMessage = false;
 		}
 		else if(_connectorA == _connectorB || _connectorA == null || _connectorB == null)
 		{
@@ -44,8 +46,10 @@ public class TCPLink extends Link{
 		{
 			//System.out.println("Link recv msg, passes it through");
 			send(_connectorA, ev, transmitionTime);
-			canSendMessage = false;
 		}
-		send(this, new TimerEvent(),one/this.msgPerSecond);
+		msgs++;
+		if(msgs>=msgPerSecond)
+			canSendMessage = false;
+		send(this, new TimerEvent(), transmitionTime);
 	}
 }

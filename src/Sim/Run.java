@@ -3,7 +3,7 @@ package Sim;
 public class Run {
 	public static void main (String [] args)
 	{
-		int linkcap = 1000;
+		int linkcap = 4;
  		TCPLink link1 = new TCPLink(linkcap);
  		TCPLink link2 = new TCPLink(linkcap);
  		TCPLink link3 = new TCPLink(linkcap);

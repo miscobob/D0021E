@@ -4,8 +4,10 @@ import Sim.Events.TCPMessage;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+
 
 public class TCPConnection extends SimEnt{
 	public enum Config
@@ -27,17 +29,20 @@ public class TCPConnection extends SimEnt{
 	private int nextWantedSeq = -1;
 	private int duplicateAcks;
 	private int dataToFetch;
-	private double ttl = 10;
+	private double ttl = 2;
 	private double rtt;
 	private double srtt;
 	private double congestionSize;
-	private double threshold = 4;
+	private double threshold = 16;
 	private TCPType waitingOn;
 	private IncrementStage incStage;
 	private HashMap<Integer, TCPMessage>waitingOnAck;/// seq, TCPMessage
 	private TCPQueue toSend;
 	private Node self;
 	private NetworkAddr correspondant;
+	private boolean sending = false;
+	
+	private static int slowStartSpeed = 1;
 	
 	public TCPConnection(Config config, Node self, NetworkAddr correspondant) 
 	{
@@ -47,7 +52,7 @@ public class TCPConnection extends SimEnt{
 		toSend = new TCPQueue();
 		this.self = self;
 		this.correspondant = correspondant;
-		congestionSize = 1;
+		congestionSize = slowStartSpeed;
 		incStage = IncrementStage.Exponential;
 		stage = ConnectionStage.Opening;
 		if(config == Config.Sender)
@@ -62,17 +67,31 @@ public class TCPConnection extends SimEnt{
 		waitingOn = TCPType.SYNACK;
 		seq++;
 		toSend.addToHead(msg);
+		sending = true;
 		send(this,new TimerEvent(), 0);
 	}
 	
 	private TCPMessage getNextMessage() 
 	{
+		boolean flag = false;
 		for(TCPMessage msg : waitingOnAck.values()) 
 		{
 			if(SimEngine.getTime()>msg.getTimeout()) 
 			{
+				System.out.println("Message from "+ self+" with seq: " +msg.seq()+" Timedout at "+ SimEngine.getTime());
 				timeout();
-				return msg;
+				flag = true;
+				break;
+			}
+		}
+		if(flag) 
+		{
+			Integer[] keys = new Integer[waitingOnAck.size()]; 
+			waitingOnAck.keySet().toArray(keys);
+			Arrays.sort(keys, Comparator.reverseOrder());
+			for(int key : keys) 
+			{
+				toSend.addToHead(waitingOnAck.remove(key));
 			}
 		}
 		if(!toSend.isEmpty()) 
@@ -105,15 +124,26 @@ public class TCPConnection extends SimEnt{
 	{
 		this.dataToFetch = dataToFetch;
 	}
-	private int[]seg = new int[100];
+	private int[]seg = new int[1000];
 	public void handleMessage(TCPMessage msg) 
 	{
 		recv++;
-		System.out.println(self + " handling tcp message " + msg.type() + " from " + correspondant);
+		if(SimEngine.getTime()>=msg.getTimeout()) 
+		{
+			System.out.println("Drop msg due to past ttl");
+		}
+		if(!sending) 
+		{
+			sending = true;
+			send(this, new TimerEvent(), 0);
+		}
+		System.out.println(self + " handling tcp message " + msg.type() +" with seq:"
+							+msg.seq()+" and ack:" +msg.ack()+" from " + correspondant + " at time " +SimEngine.getTime());
 		if(waitingOn == null) 
 		{
 			if(config == Config.Sender) 
 			{
+				
 				messageHandlerSender(msg);
 			}
 			else if(config == Config.Receiver)
@@ -168,24 +198,43 @@ public class TCPConnection extends SimEnt{
 			
 		}
 	}
-
+	ArrayList<Integer> sentAcks = new ArrayList<Integer>();
 	private void messageHandlerReceiver(TCPMessage msg) {
 		if(msg.type() == TCPType.ACK) {
 			 if(msg.segments() != 0 && msg.segments() >= msg.segment()) 
-			{
+			 {
 				 seg[msg.segment()-1] = 1;
 				 if(nextWantedSeq == -1)
 					nextWantedSeq = msg.seq()-msg.segment()+1;
+				 int temp = nextWantedSeq;
 				 nextWantedSeq = msg.seq() == nextWantedSeq ? nextWantedSeq+1 : nextWantedSeq;
-				 TCPMessage reply = new TCPMessage(self.getAddr(), correspondant, seq, nextWantedSeq, TCPType.ACK, 0);
+				 int ack = 0;
+				 if(nextWantedSeq != temp && !sentAcks.contains(nextWantedSeq))
+					 sentAcks.add(nextWantedSeq);
+				 if(nextWantedSeq == temp) 
+				 {
+					 ack = msg.seq()+1;
+					 if(!sentAcks.contains(ack))
+						 sentAcks.add(ack);
+					 duplicateAcks++;
+					 if(duplicateAcks>=3)
+						 threeDupAck();
+				 }
+				 else 
+					 while(sentAcks.contains(nextWantedSeq+1))
+						 nextWantedSeq++;
+				 TCPMessage reply = new TCPMessage(self.getAddr(), correspondant, seq, nextWantedSeq, TCPType.ACK, -ack);
 				 seq++;
 				 toSend.addToTail(reply);
-				 if(msg.segment() == msg.segments() && msg.seq() + 1 == nextWantedSeq)
+				 if(dataToFetch==sentAcks.size())
 				 {
 					 TCPMessage fin = new TCPMessage(self.getAddr(), correspondant, seq, nextWantedSeq, TCPType.FIN, 0);
 					 seq++;
 					 toSend.addToTail(fin);
 				 }
+				 
+				 if(waitingOnAck.containsKey(msg.ack()))
+					 waitingOnAck.remove(msg.ack());
 			}
 			else 
 			{	
@@ -209,15 +258,16 @@ public class TCPConnection extends SimEnt{
 		}
 	}
 
+	
 	private void messageHandlerSender(TCPMessage msg) {
-		if(msg.data() > 0 && msg.type() == TCPType.ACK) 
+		if(msg.data() > 0 && msg.type() == TCPType.ACK && dataToFetch == 0) 
 		{
-			int segments = msg.data();
-			for(int segment = 1; segment <= segments; segment++) 
+			dataToFetch = msg.data();
+			for(int segment = 1; segment <= dataToFetch; segment++) 
 			{
 				TCPMessage reply = new TCPMessage(self.getAddr(), correspondant, seq, msg.seq()+1, TCPType.ACK, 0);
 				reply.setSegment(segment);
-				reply.setSegments(segments);
+				reply.setSegments(dataToFetch);
 				toSend.addToTail(reply);
 				seq++;
 			}
@@ -228,16 +278,42 @@ public class TCPConnection extends SimEnt{
 			if(msg.ack() == lastAck) 
 			{
 				duplicateAcks++;
-				if (duplicateAcks>3) {
+				if(msg.data() != 0)
+					waitingOnAck.remove(-msg.data());
+				//System.out.println(b.toString());
+				if (duplicateAcks>=3) {
+					System.out.println(self + " got triple ack on ack " + lastAck);
 					threeDupAck();
 					duplicateAcks = 0;
-					toSend.addToHead(waitingOnAck.get(msg.ack()+1));
+					/*
+					Integer[] keys = new Integer[waitingOnAck.size()]; 
+					waitingOnAck.keySet().toArray(keys);
+					Arrays.sort(keys, Comparator.reverseOrder());
+					for(int key : keys) 
+					{
+						toSend.addToHead(waitingOnAck.remove(key));
+					}*/
+					toSend.addToHead(waitingOnAck.remove(msg.ack()+1));
+					return;
 				}
 			}
-			else 
+			else if(msg.ack() == lastAck+1)
 			{
 				lastAck = msg.ack();
 				waitingOnAck.remove(msg.ack());
+				duplicateAcks = 1;
+			}
+			else if(msg.ack() > lastAck) 
+			{
+				lastAck = msg.ack();
+				Integer[] keys = new Integer[waitingOnAck.size()]; 
+				waitingOnAck.keySet().toArray(keys);
+				Arrays.sort(keys, Comparator.reverseOrder());
+				for(int key : keys) 
+				{
+					if(key<msg.ack())
+						waitingOnAck.remove(key);
+				}
 				duplicateAcks = 1;
 			}
 		}
@@ -294,7 +370,7 @@ public class TCPConnection extends SimEnt{
 	
 	public void timeout() 
 	{
-		congestionSize = 1;
+		congestionSize = slowStartSpeed;
 		incStage = TCPConnection.IncrementStage.Exponential;
 	}
 	
@@ -315,38 +391,50 @@ public class TCPConnection extends SimEnt{
 	}
 	private int sent = 0;
 	private int recv = 0;
-	
 	@Override
 	public void recv(SimEnt source, Event event) {
 		if(event instanceof TimerEvent) 
 		{
 			if(stage != ConnectionStage.Closed) 
 			{
+				sending = true;
 				TCPMessage msg = getNextMessage();
 				if(msg != null)
 				{
-					System.out.println(self + " sends tcp message " + msg.type() +" to "+ correspondant);
+					System.out.println(self + " send tcp message " + msg.type() +" with seq:"
+							+msg.seq()+" and ack:" +msg.ack()+" to " + correspondant + " at time " + SimEngine.getTime());
 					if((config == Config.Sender && stage == ConnectionStage.Open && msg.type() == TCPType.ACK)||msg.data()>0|| waitingOn != null)
 						waitingOnAck.put(msg.seq()+1, msg);
 					msg.setTTL(ttl, SimEngine.getTime());
-					self.sendTCP(msg, 1/congestionSize);
+					self.sendTCP(msg);
 					try {
 						Logger.LogTime(self.toString(), Double.toString(congestionSize));
 					} catch (IOException e) {
-						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-					sent++;
 					updatingSendingRate();
+					sent++;
 				}
-				send(this, new TimerEvent(), 1/congestionSize);
+				else 
+				{
+					System.out.print("");
+				}
+				if(!toSend.isEmpty() || !waitingOnAck.isEmpty()) 
+				{
+					send(this, new TimerEvent(), 1.0/congestionSize);
+					return;
+				}
+				else
+					sending = false;
+				if(toSend.isEmpty() && waitingOnAck.isEmpty())
+					return;
 			}
 			else 
 			{
-				System.out.println("Communcation has ended sent "+ sent + " and received "+ recv );
+				System.out.println(self + " communcation with "+ correspondant +" has ended sent "+ sent + " and received "+ recv );
 			}
 		}
-		
+		return;
 	}
 	
 	

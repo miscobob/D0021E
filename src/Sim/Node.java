@@ -202,9 +202,9 @@ public class Node extends SimEnt {
 		}
 	}
 
-	public void sendTCP(TCPMessage msg, double time) 
+	public void sendTCP(TCPMessage msg) 
 	{
-		send(_peer, msg, time);
+		send(_peer, msg, 0);
 	}
 	/*
 	private void reno(TCPConnection con) {

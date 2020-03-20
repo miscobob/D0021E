@@ -36,8 +36,11 @@ public class TCPQueue{
 	}
 	public void addToHead(TCPMessage msg)
 	{
-		if(msg == null)
+		if(msg == null) 
+		{
+			System.out.println("Null msg");
 			return;
+		}
 		QueueElement e = new QueueElement(msg);
 		e.next = first;
 		first = e;
